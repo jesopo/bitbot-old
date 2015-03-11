@@ -9,10 +9,10 @@ def remove_colon(s):
 def arbitrary(words):
     return remove_colon(" ".join(words))
 
-RE_HOSTMASK = re.compile("([^!]*)!([^@]*)@(.*)")
+RE_HOSTMASK = re.compile(":?([^!]*)!([^@]*)@(.*)")
 # split up a nickname!username@hostname combo into the relevant parts
 def hostmask_split(hostmask):
-    hostmask_match = re.match(RE_HOSTMASK, remove_colon(hostmask))
+    hostmask_match = re.match(RE_HOSTMASK, hostmask)
     if not hostmask_match:
         return [None, None, None]
     return hostmask_match.groups()

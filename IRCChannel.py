@@ -1,9 +1,9 @@
 import IRCChannelMode
 
 class IRCChannel(object):
-    def __init__(self, server):
+    def __init__(self, name, server):
+        self.name = name
         self.server = server
-        self.name = None
         self.users = {}
         self.modes = {}
         self.user_modes = {}
@@ -44,3 +44,6 @@ class IRCChannel(object):
                     self.modes[mode].remove_argument(argument)
             else:
                 self.modes[mode].enabled = False
+    
+    def send_who(self):
+        self.server.send_who(self.name)

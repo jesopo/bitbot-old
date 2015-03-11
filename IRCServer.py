@@ -52,10 +52,19 @@ class IRCServer(object):
         return line
     
     def has_user(self, nickname):
-        return nickname.lower() in self.nickname_to_id
+        if nickname:
+            return nickname.lower() in self.nickname_to_id
     def get_user_by_nickname(self, nickname):
-        return self.users.get(self.nickname_to_id.get(nickname.lower(), None),
-            None)
+        if nickname:
+            return self.users.get(self.nickname_to_id.get(nickname.lower(),
+                None), None)
+    def add_user(self, nickname):
+        IRCUser.IRCUser(nickname, self)
+    
+    def has_channel(self, channel_name):
+        return channel_name.lower() in self.channels
+    def get_channel(self, channel_name):
+        return self.channels.get(channel_name.lower(), None)
     
     def connect(self):
         assert self.server_hostname
@@ -109,10 +118,14 @@ class IRCServer(object):
     def send_whois(self, nickname):
         if nickname:
             self.queue_line("WHOIS %s" % nickname)
+    def send_who(self, argument):
+        if argument:
+            self.queue_line("WHO %s" % argument)
     
     def join_channel(self, channel_name):
         if not channel_name.lower() in self.channels:
-            self.channels
+            self.channels[channel_name.lower()] = IRCChannel.IRCChannel(
+                channel_name, self)
     
     def get_own_hostmask(self):
         return "%s!%s@%s" % (nickname, username, hostname)
@@ -123,10 +136,58 @@ class IRCServer(object):
         nickname, username, hostname = IRCHelpers.hostmask_split(line_split[0])
         if self.own_nickname(nickname):
             self.join_channel(IRCHelpers.get_index(line_split, 2))
+            self.get_channel(IRCHelpers.get_index(line_split, 2)).send_who()
+        else:
+            if not self.has_user(nickname):
+                self.add_user(nickname)
+                
+                
     def handle_PART(self, line, line_split):
         nickname, username, hostname = IRCHelpers.hostmask_split(line_split[0])
         if self.own_nickname(nickname):
             self.part_channel(IRCHelpers.get_index(line_split, 2))
+    def handle_QUIT(self, line, line_split):
+        nickname, username, hostname = IRCHelpers.hostmask_split(line_split[0])
+        user = self.get_user_by_nickname(nickname)
+        if user:
+            user.destroy()
+    def handle_MODE(self, line, line_split):
+        nickname, username, hostname = IRCHelpers.hostmask_split(line_split[0])
+        modes = IRCHelpers.remove_colon(IRCHelpers.get_index(line_split, 3) or
+            "")
+        arguments = line_split[4:]
+        mode_count = (len(modes) - modes.count("+")) - modes.count("-")
+        recipient_name = IRCHelpers.get_index(line_split, 2)
+        channel = self.get_channel(recipient_name)
+        user = self.get_user_by_nickname(recipient_name)
+        recipient = channel or user
+        
+        if recipient:
+            current_index = 0
+            add_mode = True
+            for char in modes:
+                if char == "+":
+                    add_mode = True
+                elif char == "-":
+                    add_mode = False
+                else:
+                    argument = None
+                    if mode_count - current_index == len(arguments):
+                        argument = arguments.pop(0)
+                    if add_mode:
+                        recipient.add_mode(char, argument)
+                    else:
+                        recipient.remove_mode(char, argument)
+                    current_index += 1
+    def handle_NICK(self, line, line_split):
+        nickname, username, hostname = IRCHelpers.hostmask_split(line_split[0])
+        new_nick = IRCHelpers.get_index(line_split, 2)
+        if self.own_nickname(nickname):
+            self.nickname = new_nick
+        else:
+            user = self.get_user_by_nickname(nickname)
+            if user:
+                user.change_nickname(new_nick)
     def handle_001(self, line, line_split):
         self.nickname = IRCHelpers.get_index(line_split, 2)
         self.send_whois(self.nickname)
@@ -136,3 +197,13 @@ class IRCServer(object):
             self.username = IRCHelpers.get_index(line_split, 4)
             self.hostname = IRCHelpers.get_index(line_split, 5)
             self.realname = IRCHelpers.arbitrary(line_split[7:])
+    def handle_525(self, line, line_split):
+        user = self.get_user_by_nickname(IRCHelpers.get_index(line_split, 7))
+        if user:
+            username = IRCHelpers.get_index(line_split, 4)
+            hostname = IRCHelpers.get_index(line_split, 5)
+            if username:
+                user.username = username
+            if hostname:
+                user.hostname = hostname
+        

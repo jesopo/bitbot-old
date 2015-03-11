@@ -18,6 +18,14 @@ class IRCUser(object):
         if channel.name in self.channels:
             del self.channels[channel.name]
     
+    def change_nickname(self, nickname):
+        self.server.nickname_to_id[nickname.lower()] = self
+        del self.server.nickname_to_id[self.nickname.lower()]
+        self.nickname = nickname
+    
+    def send_who(self):
+        self.server.send_who(self.nickname)
+    
     def destroy(self):
         del self.server.users[self.id]
         del self.server.nickname_to_id[self.nickname.lower()]
