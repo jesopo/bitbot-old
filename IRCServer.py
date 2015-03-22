@@ -2,27 +2,30 @@ import socket, ssl
 import IRCChannel, IRCChannelMode, IRCHelpers, IRCUser
 
 class IRCServer(object):
-    def __init__(self):
+    def __init__(self, config):
+        self.config = config
+        
         self._send_queue = []
         # underlying socket
         self._socket = socket.socket()
         # hostname to connect to
-        self.server_hostname = None
+        self.server_hostname = config.get("hostname")
         # port to connect to
-        self.server_port = None
+        self.server_port = config.get("port")
         # password to send to the server
-        self.password = None
+        self.password = config.get("password")
         # whether this is an ssl connection or not
-        self.ssl = None
+        self.ssl = config.get("ssl")
         # the address to bind onto
-        self.bindhost = None
+        self.bindhost = config.get("bindhost")
         
         # nickname, username and realname. before connecting these should be set
         # to what they're desired to be. after connecting, these will be set to
         # what the server says they are
-        self.nickname = None
-        self.username = None
-        self.realname = None
+        self.nickname = config.get("nickname")
+        self.alt_nickname = config.get("alt-nickname")
+        self.username = config.get("username")
+        self.realname = config.get("realname")
         
         # the hostname the server says we have
         self.hostname = None
@@ -87,30 +90,30 @@ class IRCServer(object):
         self.send_nick(self.nickname)
         self.connected = True
     
-    def readline(self):
+    def read_line(self):
         line = ""
         while True:
-            byte = self._socket.recv(1)
+            byte = self._socket.recv(1).decode("utf8")
             if byte == "\n":
                 break
             line += byte
-        line = line.strip("\r").decode("utf8")
+        line = line.strip("\r")
         return self.handle_line(line)
     
     def waiting_send(self):
         return len(self._send_queue) > 0
     def send_line(self):
         try:
-            self._socket.send(self._send_queue.pop(0))
+            self._socket.send(self._send_queue.pop(0).encode("utf8"))
         except Exception as e:
             raise e
     def queue_line(self, line):
-        self._send_queue.append("%s\r\n" % line.encode("utf8"))
+        self._send_queue.append("%s\r\n" % line)
     def send_pass(self, password):
         if password:
             self.queue_line("PASS %s" % password)
     def send_user(self, username, realname):
-        if nickname and realname:
+        if username and realname:
             self.queue_line("USER %s - - :%s" % (username, realname))
     def send_nick(self, nickname):
         if nickname:
@@ -121,11 +124,10 @@ class IRCServer(object):
     def send_who(self, argument):
         if argument:
             self.queue_line("WHO %s" % argument)
-    
-    def join_channel(self, channel_name):
-        if not channel_name.lower() in self.channels:
-            self.channels[channel_name.lower()] = IRCChannel.IRCChannel(
-                channel_name, self)
+    def send_join(self, channel_name):
+        if channel_name:
+            self.queue_line("JOIN %s" % channel_name)
+        
     
     def get_own_hostmask(self):
         return "%s!%s@%s" % (nickname, username, hostname)
@@ -134,8 +136,11 @@ class IRCServer(object):
     
     def handle_JOIN(self, line, line_split):
         nickname, username, hostname = IRCHelpers.hostmask_split(line_split[0])
+        channel_name = IRCHelpers.get_index(line_split, 2)
         if self.own_nickname(nickname):
-            self.join_channel(IRCHelpers.get_index(line_split, 2))
+            if not channel_name.lower() in self.channels:
+                self.channels[channel_name.lower()] = IRCChannel.IRCChannel(
+                    channel_name, self)
             self.get_channel(IRCHelpers.get_index(line_split, 2)).send_who()
         else:
             if not self.has_user(nickname):
@@ -191,6 +196,7 @@ class IRCServer(object):
     def handle_001(self, line, line_split):
         self.nickname = IRCHelpers.get_index(line_split, 2)
         self.send_whois(self.nickname)
+        self.send_join("#schoentoon")
     def handle_311(self, line, line_split):
         nickname = IRCHelpers.get_index(line_split, 2)
         if self.own_nickname(nickname):
