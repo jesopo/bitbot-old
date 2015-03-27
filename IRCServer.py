@@ -52,6 +52,9 @@ class IRCServer(object):
         line_split = line.split(" ")
         if self.has_handler(line_split[1]):
             getattr(self, "handle_%s" % line_split[1])(line, line_split)
+        elif not line_split[0].startswith(":") and self.has_handler(
+                "%s_" % line_split[0]):
+            getattr(self, "handle_%s_" % line_split[0])(line, line_split)
         return line
     
     def has_user(self, nickname):
@@ -104,7 +107,8 @@ class IRCServer(object):
         return len(self._send_queue) > 0
     def send_line(self):
         try:
-            self._socket.send(self._send_queue.pop(0).encode("utf8"))
+            line = self._send_queue.pop(0).encode("utf8")
+            self._socket.send(line)
         except Exception as e:
             raise e
     def queue_line(self, line):
@@ -127,6 +131,12 @@ class IRCServer(object):
     def send_join(self, channel_name):
         if channel_name:
             self.queue_line("JOIN %s" % channel_name)
+    def send_ping(self, nonce):
+        if nonce:
+            self.queue_line("PING :%s" % nonce)
+    def send_pong(self, nonce):
+        if nonce:
+            self.queue_line("PONG :%s" % nonce)
         
     
     def get_own_hostmask(self):
@@ -145,8 +155,6 @@ class IRCServer(object):
         else:
             if not self.has_user(nickname):
                 self.add_user(nickname)
-                
-                
     def handle_PART(self, line, line_split):
         nickname, username, hostname = IRCHelpers.hostmask_split(line_split[0])
         if self.own_nickname(nickname):
@@ -196,7 +204,6 @@ class IRCServer(object):
     def handle_001(self, line, line_split):
         self.nickname = IRCHelpers.get_index(line_split, 2)
         self.send_whois(self.nickname)
-        self.send_join("#schoentoon")
     def handle_311(self, line, line_split):
         nickname = IRCHelpers.get_index(line_split, 2)
         if self.own_nickname(nickname):
@@ -212,4 +219,6 @@ class IRCServer(object):
                 user.username = username
             if hostname:
                 user.hostname = hostname
-        
+    def handle_PING_(self, line, line_split):
+        nonce = IRCHelpers.arbitrary(line_split[1:])
+        self.send_pong(nonce)
