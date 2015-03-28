@@ -2,8 +2,9 @@ import socket, ssl
 import IRCChannel, IRCChannelMode, IRCHelpers, IRCUser
 
 class IRCServer(object):
-    def __init__(self, config):
+    def __init__(self, config, events):
         self.config = config
+        self.events = events
         
         self._send_queue = []
         # underlying socket
@@ -66,6 +67,10 @@ class IRCServer(object):
                 None), None)
     def add_user(self, nickname):
         IRCUser.IRCUser(nickname, self)
+    def remove_user(self, nickname):
+        user = self.get_user_by_nickname(nickname)
+        if user:
+            user.destroy()
     
     def has_channel(self, channel_name):
         return channel_name.lower() in self.channels
@@ -94,13 +99,15 @@ class IRCServer(object):
         self.connected = True
     
     def read_line(self):
-        line = ""
+        line = b""
         while True:
-            byte = self._socket.recv(1).decode("utf8")
-            if byte == "\n":
+            byte = self._socket.recv(1)
+            if byte == b"\n":
                 break
+            elif byte == b"\r":
+                continue
             line += byte
-        line = line.strip("\r")
+        line = line.decode("utf8")
         return self.handle_line(line)
     
     def waiting_send(self):
@@ -146,15 +153,23 @@ class IRCServer(object):
     
     def handle_JOIN(self, line, line_split):
         nickname, username, hostname = IRCHelpers.hostmask_split(line_split[0])
-        channel_name = IRCHelpers.get_index(line_split, 2)
+        channel_name = IRCHelpers.remove_colon(
+            IRCHelpers.get_index(line_split, 2))
         if self.own_nickname(nickname):
             if not channel_name.lower() in self.channels:
                 self.channels[channel_name.lower()] = IRCChannel.IRCChannel(
                     channel_name, self)
-            self.get_channel(IRCHelpers.get_index(line_split, 2)).send_who()
+            self.get_channel(channel_name).send_who()
+            self.events.on("self").on("join").call(line=line,
+                line_split=line_split, server=self,
+                channel=self.get_channel(channel_name))
         else:
             if not self.has_user(nickname):
                 self.add_user(nickname)
+            self.events.on("received").on("join").call(line=line,
+                line_split=line_split, server=self,
+                channel=self.get_channel(channel_name),
+                user=self.get_user_by_nickname(nickname))
     def handle_PART(self, line, line_split):
         nickname, username, hostname = IRCHelpers.hostmask_split(line_split[0])
         if self.own_nickname(nickname):
@@ -204,6 +219,8 @@ class IRCServer(object):
     def handle_001(self, line, line_split):
         self.nickname = IRCHelpers.get_index(line_split, 2)
         self.send_whois(self.nickname)
+        self.events.on("received").on("numeric").on("001").call(line=line,
+            line_split=line_split, server=self)
     def handle_311(self, line, line_split):
         nickname = IRCHelpers.get_index(line_split, 2)
         if self.own_nickname(nickname):

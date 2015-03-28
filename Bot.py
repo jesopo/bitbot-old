@@ -1,8 +1,11 @@
 import select
-import ConfigManager, IRCServer
+import ConfigManager, IRCServer, ModuleManager
 
 class Bot(object):
     def __init__(self):
+        self.module_manager = ModuleManager.ModuleManager()
+        self.module_manager.load_modules()
+        self.events = self.module_manager.events
         self.config_manager = ConfigManager.ConfigManager("servers")
         self.servers = []
         self.write_waiting = set([])
@@ -12,7 +15,7 @@ class Bot(object):
             config = ConfigManager.Config(config_filename)
             configs.append(config)
         for config in configs:
-            server = IRCServer.IRCServer(config)
+            server = IRCServer.IRCServer(config, self.events)
             self.servers.append(server)
         for server in self.servers:
             server.connect();

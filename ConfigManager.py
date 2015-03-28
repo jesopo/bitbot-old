@@ -22,7 +22,7 @@ class Config(object):
         return self.config.get(key, default)
     
     def __getitem__(self, key):
-        return self.config[name]
+        return self.config[key]
     def __setitem__(self, key, value):
         self.config[key] = value
     def __delitem__(self, key):
@@ -37,7 +37,7 @@ class Config(object):
 
 class ConfigManager(object):
     def __init__(self, directory="settings"):
-        self.directory = "%s/%s" % (current_directory, directory)
+        self.directory = os.path.join(current_directory, directory)
         self.configs = {}
         if not os.path.isdir(self.directory):
             os.mkdir(self.directory)
