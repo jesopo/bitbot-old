@@ -1,35 +1,60 @@
 import select
-import ConfigManager, IRCServer, ModuleManager
+import ConfigManager, IRCServer, ModuleManager, TimedCallback
 
 class Bot(object):
     def __init__(self):
-        self.module_manager = ModuleManager.ModuleManager()
+        self.servers = set([])
+        self.other_fds = set([])
+        self.write_waiting = set([])
+        self.module_manager = ModuleManager.ModuleManager(self)
         self.module_manager.load_modules()
         self.events = self.module_manager.events
-        self.config_manager = ConfigManager.ConfigManager("servers")
-        self.servers = []
-        self.write_waiting = set([])
+        self.server_config_manager = ConfigManager.ConfigManager("servers")
+        self.general_config_manager = ConfigManager.ConfigManager("settings")
+        self.timed_callbacks = []
+        
+        self.config = self.general_config_manager.get_config("bot")
+        self.max_loop_delay = self.config.get("max-loop-delay", 4)
         
         configs = []
-        for config_filename in self.config_manager.list_configs():
-            config = ConfigManager.Config(config_filename)
+        for config_name in self.server_config_manager.list_configs():
+            config = self.server_config_manager.get_config(config_name)
             configs.append(config)
         for config in configs:
             server = IRCServer.IRCServer(config, self.events)
-            self.servers.append(server)
+            self.servers.add(server)
         for server in self.servers:
-            server.connect();
+            server.connect()
+    
+    def get_soonest_timer(self):
+        soonest = None
+        for timer in self.timed_callbacks:
+            if soonest == none or timer.due_at() < soonest.due_at():
+                soonest = timer
+        return soonest
+    def get_timer_delay(self):
+        soonest = self.get_soonest_timer()
+        if not soonest:
+            return self.max_loop_delay
+        return soonest.time_until()
     
     def listen(self):
         while len(self.servers):
-            readable, writable, errors = select.select(self.servers,
-                self.write_waiting, [])
+            readable, writable, errors = select.select(self.servers|
+                self.other_fds, self.write_waiting, [], self.get_timer_delay())
             for server in readable:
-                line = server.read_line()
-                # DO STUFF WITH THE LINE IDK
-                print(line)
+                if server in self.other_fds:
+                    self.events.on("other_fd").on("readable").on(
+                        server.fileno()).call(readable=server)
+                if server in self.servers:
+                    line = server.read_line()
+                    print(line)
             for server in writable:
-                server.send_line()
+                if server in self.other_fds:
+                    self.events.on("other_fds").on("writable").on(
+                        server.fileno()).call(writable=server)
+                if server in self.servers:
+                    server.send_line()
                 self.write_waiting.remove(server)
             for server in self.servers:
                 if server.waiting_send():

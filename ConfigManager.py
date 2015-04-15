@@ -4,23 +4,22 @@ import yaml
 current_directory = os.path.dirname(os.path.abspath(__file__))
 
 class Config(object):
-    def __init__(self, name):
-        self.name = name
-        self.config = None
+    def __init__(self, path):
+        self.path = path
+        self.config = {}
         self.read()
     
     def read(self):
-        if os.path.isfile(self.name):
-            with open(self.name) as file_object:
+        if os.path.isfile(self.path):
+            with open(self.path) as file_object:
                 self.config = yaml.load(file_object.read())
     
     def save(self):
-        with open(self.name, "w") as file_object:
+        with open(self.path, "w") as file_object:
             file_object.write(yaml.dump(self.config))
     
     def get(self, key, default=None):
         return self.config.get(key, default)
-    
     def __getitem__(self, key):
         return self.config[key]
     def __setitem__(self, key, value):
@@ -43,11 +42,14 @@ class ConfigManager(object):
             os.mkdir(self.directory)
     
     def list_configs(self, prefix=""):
-        return glob.glob("%s/*.conf" % self.directory)
+        config_names = []
+        
+        for filename in glob.glob(os.path.join(self.directory, "*.conf")):
+            config_names.append(os.path.basename(filename))
+        return config_names
     
     def get_config(self, name):
-        if not name.lower() in self.configs:
-            with open(name) as file_object:
-                config = yaml.load(file_object.read())
-                self.configs[name.lower()] = config
-        return self.configs[name.lower()]
+        name = name.lower()
+        if not name in self.configs:
+            self.configs[name] = Config(os.path.join(self.directory, name))
+        return self.configs[name]

@@ -37,6 +37,11 @@ class IRCServer(object):
         self.users = {}
         self.nickname_to_id = {}
         
+        # what encoding this server is using. if not specified in config, it'll
+        # try to use UTF8, and fallback to iso-8859-1 (latin-1) if that fails
+        self.encoding = config.get("encoding", "utf8")
+        self.fallback_encoding = config.get("fallback-encoding", "iso-8859-1")
+        
         # boolean denoting whether the server object has realised that it's been
         # disconnected or not yet connected or happily dandily connected
         self.connected = False
@@ -107,7 +112,10 @@ class IRCServer(object):
             elif byte == b"\r":
                 continue
             line += byte
-        line = line.decode("utf8")
+        try:
+            line = line.decode(self.encoding)
+        except UnicodeDecodeError as e:
+            line = line.decode(self.fallback_encoding)
         return self.handle_line(line)
     
     def waiting_send(self):

@@ -1,10 +1,10 @@
 
 
-class module(object):
-    def __init__(self, events):
+class Module(object):
+    def __init__(self, bot, events):
         events.on("received").on("numeric").on("001").hook(self.on_connect)
         
     def on_connect(self, event):
-        if "channels" in event["server"].config:
+        if event["server"].config.get("channels"):
             for channel in event["server"].config["channels"]:
                 event["server"].send_join(channel)
