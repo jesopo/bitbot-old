@@ -67,16 +67,8 @@ class EventHook(object):
             if event.stopped_propagation():
                 break
             function(event)
-        if self.parent and not event.stop_escalation:
+        if self.parent and not event.stopped_escalation():
             self.parent.call(original_path, **kwargs)
-        return self
-    
-    def from_path(self, *path):
-        if len(path):
-            hook = self.on(path[0])
-            for step in path:
-                hook = hook.on(step)
-            return hook
         return self
 
 class ModuleManager(object):
@@ -107,7 +99,7 @@ class ModuleManager(object):
             'module' class."""
         assert inspect.isclass(module.Module), """module '%s' has something
             called 'module' but it's not a class."""
-        module.Module(self.bot, self.events)
+        module.Module(self.bot)
         return module
     
     def load_modules(self):

@@ -7,8 +7,8 @@ class Bot(object):
         self.other_fds = set([])
         self.write_waiting = set([])
         self.module_manager = ModuleManager.ModuleManager(self)
-        self.module_manager.load_modules()
         self.events = self.module_manager.events
+        self.module_manager.load_modules()
         self.server_config_manager = ConfigManager.ConfigManager("servers")
         self.general_config_manager = ConfigManager.ConfigManager("settings")
         self.timed_callbacks = []
@@ -21,7 +21,7 @@ class Bot(object):
             config = self.server_config_manager.get_config(config_name)
             configs.append(config)
         for config in configs:
-            server = IRCServer.IRCServer(config, self.events)
+            server = IRCServer.IRCServer(config, self)
             self.servers.add(server)
         for server in self.servers:
             server.connect()
@@ -38,6 +38,12 @@ class Bot(object):
             return self.max_loop_delay
         return soonest.time_until()
     
+    def reconnect(self, server):
+        self.servers.remove(server)
+        server.disconnect()
+        new_server = IRCServer.IRCServer(server.config, self.events)
+        self.servers.add(new_server)
+    
     def listen(self):
         while len(self.servers):
             readable, writable, errors = select.select(self.servers|
@@ -48,7 +54,10 @@ class Bot(object):
                         server.fileno()).call(readable=server)
                 if server in self.servers:
                     line = server.read_line()
-                    print(line)
+                    if line:
+                        print(line)
+                    else:
+                        self.reconnect(server)
             for server in writable:
                 if server in self.other_fds:
                     self.events.on("other_fds").on("writable").on(

@@ -8,7 +8,7 @@ class IRCChannelMode(object):
         self.arguments = set([])
     
     def add_argument(self, argument):
-        self.arguements.add(argument)
+        self.arguments.add(argument)
     def remove_argument(self, argument):
         if argument in self.arguments:
             self.arguments.remove(argument)

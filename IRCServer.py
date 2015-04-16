@@ -2,9 +2,9 @@ import socket, ssl
 import IRCChannel, IRCChannelMode, IRCHelpers, IRCUser
 
 class IRCServer(object):
-    def __init__(self, config, events):
+    def __init__(self, config, bot):
         self.config = config
-        self.events = events
+        self.bot = bot
         
         self._send_queue = []
         # underlying socket
@@ -36,11 +36,6 @@ class IRCServer(object):
         # list of users we can see (that are in channel's we're in.)
         self.users = {}
         self.nickname_to_id = {}
-        
-        # what encoding this server is using. if not specified in config, it'll
-        # try to use UTF8, and fallback to iso-8859-1 (latin-1) if that fails
-        self.encoding = config.get("encoding", "utf8")
-        self.fallback_encoding = config.get("fallback-encoding", "iso-8859-1")
         
         # boolean denoting whether the server object has realised that it's been
         # disconnected or not yet connected or happily dandily connected
@@ -103,20 +98,32 @@ class IRCServer(object):
         self.send_nick(self.nickname)
         self.connected = True
     
+    def disconnect(self):
+        self.send_quit()
+        self.connected = False
+        self.socket.shutdown(socket.SHUT_RDWR)
+        self.socket.close()
+    
     def read_line(self):
         line = b""
         while True:
-            byte = self._socket.recv(1)
+            try:
+                byte = self._socket.recv(1)
+            except:
+                return None
             if byte == b"\n":
                 break
             elif byte == b"\r":
                 continue
             line += byte
         try:
-            line = line.decode(self.encoding)
+            line = line.decode(self.config.get("encoding", "utf8"))
         except UnicodeDecodeError as e:
-            line = line.decode(self.fallback_encoding)
-        return self.handle_line(line)
+            line = line.decode(
+                self.config.get("fallback-encoding", "iso-8859-1"))
+        if line:
+            return self.handle_line(line)
+        return None
     
     def waiting_send(self):
         return len(self._send_queue) > 0
@@ -152,6 +159,12 @@ class IRCServer(object):
     def send_pong(self, nonce):
         if nonce:
             self.queue_line("PONG :%s" % nonce)
+    def send_quit(self, message=None):
+        message = message or self.config.get("quit-message", "Leaving")
+        self.queue_line("QUIT :%s" % message)
+    def send_message(self, recipient, message):
+        if recipient and message:
+            self.queue_line("PRIVMSG %s :%s" % (recipient, message))
         
     
     def get_own_hostmask(self):
@@ -168,13 +181,13 @@ class IRCServer(object):
                 self.channels[channel_name.lower()] = IRCChannel.IRCChannel(
                     channel_name, self)
             self.get_channel(channel_name).send_who()
-            self.events.on("self").on("join").call(line=line,
+            self.bot.events.on("self").on("join").call(line=line,
                 line_split=line_split, server=self,
                 channel=self.get_channel(channel_name))
         else:
             if not self.has_user(nickname):
                 self.add_user(nickname)
-            self.events.on("received").on("join").call(line=line,
+            self.bot.events.on("received").on("join").call(line=line,
                 line_split=line_split, server=self,
                 channel=self.get_channel(channel_name),
                 user=self.get_user_by_nickname(nickname))
@@ -224,10 +237,42 @@ class IRCServer(object):
             user = self.get_user_by_nickname(nickname)
             if user:
                 user.change_nickname(new_nick)
+    def handle_PRIVMSG(self, line, line_split):
+        nickname, username, hostname = IRCHelpers.hostmask_split(line_split[0])
+        sender = self.get_user_by_nickname(nickname)
+        recipient_name = IRCHelpers.get_index(line_split, 2)
+        channel = self.get_channel(recipient_name)
+        user = self.get_user_by_nickname(recipient_name)
+        action = False
+        text = IRCHelpers.arbitrary(line_split[3:])
+        if text.startswith("\01ACTION ") and text.endswith("\01"):
+            action = True
+            text = text.replace("\01ACTION ", "", 1)[-1]
+        text_split = text.split()
+        if channel:
+            self.bot.events.on("received").on("message").on("channel").on(
+                recipient_name.lower()).call(line=line, line_split=line_split,
+                server=self, channel=channel, text=text, text_split=text_split,
+                sender=sender, action=action)
+            command_prefix = self.config.get("command-prefix", "!")
+            if not action and text.startswith(command_prefix):
+                command = text_split[0].replace(command_prefix, "", 1)
+                self.bot.events.on("received").on("command").on("channel").on(
+                    command).call(line=line, line_split=line_split, server=self,
+                    channel=channel, text=text, text_split=text_split,
+                    sender=sender)
+        elif user:
+            self.bot.events.on("received").on("message").on("private").call(
+                line=line, line_split=line_split, server=self, text=text,
+                sender=sender, action=acton)
+            if not action:
+                self.bot.events.on("received").on("command").on("private").call(
+                    line=line, line_split=line_split, server=self, text=text,
+                    sender=sender, command=command)
     def handle_001(self, line, line_split):
         self.nickname = IRCHelpers.get_index(line_split, 2)
         self.send_whois(self.nickname)
-        self.events.on("received").on("numeric").on("001").call(line=line,
+        self.bot.events.on("received").on("numeric").on("001").call(line=line,
             line_split=line_split, server=self)
     def handle_311(self, line, line_split):
         nickname = IRCHelpers.get_index(line_split, 2)
@@ -235,15 +280,21 @@ class IRCServer(object):
             self.username = IRCHelpers.get_index(line_split, 4)
             self.hostname = IRCHelpers.get_index(line_split, 5)
             self.realname = IRCHelpers.arbitrary(line_split[7:])
-    def handle_525(self, line, line_split):
-        user = self.get_user_by_nickname(IRCHelpers.get_index(line_split, 7))
+    def handle_352(self, line, line_split):
+        nickname = IRCHelpers.get_index(line_split, 7)
+        if not self.has_user(nickname):
+            self.add_user(nickname)
+        user = self.get_user_by_nickname(nickname)
         if user:
             username = IRCHelpers.get_index(line_split, 4)
             hostname = IRCHelpers.get_index(line_split, 5)
+            realname = IRCHelpers.arbitrary(line_split[10:])
             if username:
                 user.username = username
             if hostname:
                 user.hostname = hostname
+            if realname:
+                user.realname = realname
     def handle_PING_(self, line, line_split):
         nonce = IRCHelpers.arbitrary(line_split[1:])
         self.send_pong(nonce)

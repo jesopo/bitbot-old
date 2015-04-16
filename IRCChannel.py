@@ -47,3 +47,5 @@ class IRCChannel(object):
     
     def send_who(self):
         self.server.send_who(self.name)
+    def send_message(self, message):
+        self.server.send_message(self.name, message)
