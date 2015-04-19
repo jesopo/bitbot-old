@@ -8,7 +8,7 @@ class Module(object):
     
     def message(self, event):
         if not hasattr(event["channel"], "log"):
-            event["channel"].log = []
+            return
         sed_split = re.split(REGEX_SPLIT, event["text"], 3)
         if event["text"].startswith("s/") and len(sed_split) > 2:
             count = ""
@@ -34,6 +34,8 @@ class Module(object):
             replace = sed_split[2].replace("\\/", "/")
             
             for log in event["channel"].log:
+                if log["text"].startswith("s/"):
+                    continue
                 match = re.search(pattern, log["text"])
                 if match:
                     new_message = re.sub(pattern, replace, log["text"], count)
@@ -44,13 +46,3 @@ class Module(object):
                         event["channel"].send_message("* %s %s" % (
                             log["nickname"], new_message))
                     break
-        else:
-            log = {}
-            log["text"] = event["text"]
-            log["nickname"] = event["sender"].nickname
-            log["action"] = event["action"]
-            event["channel"].log.append(log)
-
-            if len(event["channel"].log) > event["server"].config.get("max-log",
-                    64):
-                event["channel"].log.pop(0)

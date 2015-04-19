@@ -25,6 +25,8 @@ class IRCUser(object):
     
     def send_who(self):
         self.server.send_who(self.nickname)
+    def send_message(self, text):
+        self.server.send_message(self.nickname, text)
     
     def destroy(self):
         del self.server.users[self.id]

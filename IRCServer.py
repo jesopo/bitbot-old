@@ -250,25 +250,13 @@ class IRCServer(object):
             text = text.replace("\01ACTION ", "", 1)[-1]
         text_split = text.split()
         if channel:
-            self.bot.events.on("received").on("message").on("channel").on(
-                recipient_name.lower()).call(line=line, line_split=line_split,
-                server=self, channel=channel, text=text, text_split=text_split,
-                sender=sender, action=action)
-            command_prefix = self.config.get("command-prefix", "!")
-            if not action and text.startswith(command_prefix):
-                command = text_split[0].replace(command_prefix, "", 1)
-                self.bot.events.on("received").on("command").on("channel").on(
-                    command).call(line=line, line_split=line_split, server=self,
-                    channel=channel, text=text, text_split=text_split,
-                    sender=sender)
+            self.bot.events.on("received").on("message").on("channel").call(
+                line=line, line_split=line_split, server=self, channel=channel,
+                text=text, text_split=text_split, sender=sender, action=action)
         elif user:
             self.bot.events.on("received").on("message").on("private").call(
                 line=line, line_split=line_split, server=self, text=text,
                 sender=sender, action=acton)
-            if not action:
-                self.bot.events.on("received").on("command").on("private").call(
-                    line=line, line_split=line_split, server=self, text=text,
-                    sender=sender, command=command)
     def handle_001(self, line, line_split):
         self.nickname = IRCHelpers.get_index(line_split, 2)
         self.send_whois(self.nickname)
