@@ -1,5 +1,7 @@
-import socket, ssl
+import re, socket, ssl
 import IRCChannel, IRCChannelMode, IRCHelpers, IRCUser
+
+RE_MODE_SYMBOLS = re.compile("PREFIX=\((\w+)\)(\W+?)(?=\s|$)", re.I)
 
 class IRCServer(object):
     def __init__(self, config, bot):
@@ -37,6 +39,9 @@ class IRCServer(object):
         # list of users we can see (that are in channel's we're in.)
         self.users = {}
         self.nickname_to_id = {}
+        
+        # all the channel mode symbols to actual modes
+        self.channel_mode_symbols = {}
         
         # boolean denoting whether the server object has realised that it's been
         # disconnected or not yet connected or happily dandily connected
@@ -303,17 +308,18 @@ class IRCServer(object):
         self.send_whois(self.nickname)
         self.bot.events.on("received").on("numeric").on("001").call(line=line,
             line_split=line_split, server=self)
+    # response to whois
     def handle_311(self, line, line_split):
         nickname = IRCHelpers.get_index(line_split, 2)
         if self.own_nickname(nickname):
             self.username = IRCHelpers.get_index(line_split, 4)
             self.hostname = IRCHelpers.get_index(line_split, 5)
             self.realname = IRCHelpers.arbitrary(line_split[7:])
+    # response to WHO
     def handle_352(self, line, line_split):
         channel = self.get_channel(IRCHelpers.get_index(line_split, 3))
         nickname = IRCHelpers.get_index(line_split, 7)
-        if not self.has_user(nickname):
-            self.add_user(nickname)
+        self.add_user(nickname)
         user = self.get_user_by_nickname(nickname)
         if user:
             username = IRCHelpers.get_index(line_split, 4)
@@ -329,6 +335,26 @@ class IRCServer(object):
     def handle_PING_(self, line, line_split):
         nonce = IRCHelpers.arbitrary(line_split[1:])
         self.send_pong(nonce)
+    # nickname taken
     def handle_433(self, line, line_split):
         if not self.tried_alt and self.alt_nickname:
             self.send_nick(self.alt_nickname)
+    # extra capabilities
+    def handle_005(self, line, line_split):
+        match = re.search(RE_MODE_SYMBOLS, line)
+        if match and len(match.group(1)) == len(match.group(2)):
+            for n, symbol in enumerate(match.group(2)):
+                self.channel_mode_symbols[symbol] = match.group(1)
+    # userlist on channel join
+    def handle_353(self, line, line_split):
+        nicknames = line_split[5:]
+        if nicknames and nicknames[0].startswith(":"):
+            nicknames[0] = nicknames[0][1:]
+        channel = self.get_channel(IRCHelpers.get_index(line_split, 4))
+        for nickname in nicknames:
+            for char in nickname:
+                if char in self.channel_mode_symbols:
+                    # make mark down the mode
+                    nickname = nickname[1:]
+            self.add_user(nickname)
+            self.get_user_by_nickname(nickname).join_channel(channel)

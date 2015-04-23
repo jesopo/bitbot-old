@@ -45,11 +45,11 @@ class ConfigManager(object):
         config_names = []
         
         for filename in glob.glob(os.path.join(self.directory, "*.conf")):
-            config_names.append(os.path.basename(filename))
+            config_names.append(os.path.basename(filename)[:-5])
         return config_names
     
     def get_config(self, name):
         name = name.lower()
         if not name in self.configs:
-            self.configs[name] = Config(os.path.join(self.directory, name))
+            self.configs[name] = Config("%s.conf" % os.path.join(self.directory, name))
         return self.configs[name]

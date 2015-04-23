@@ -14,7 +14,6 @@ class Bot(object):
         self.timed_callbacks = []
         
         self.config = self.general_config_manager.get_config("bot")
-        self.max_loop_delay = self.config.get("max-loop-delay", 4)
         
         configs = []
         for config_name in self.server_config_manager.list_configs():
@@ -35,7 +34,7 @@ class Bot(object):
     def get_timer_delay(self):
         soonest = self.get_soonest_timer()
         if not soonest:
-            return self.max_loop_delay
+            return self.config.get("max-loop-interval", 4)
         return soonest.time_until()
     
     def reconnect(self, server):

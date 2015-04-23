@@ -14,9 +14,11 @@ class IRCUser(object):
     def join_channel(self, channel):
         if not channel.name in self.channels:
             self.channels[channel.name] = channel
+        channel.add_user(self)
     def part_channel(self, channel):
         if channel.name in self.channels:
             del self.channels[channel.name]
+        channel.remove_user(self)
     
     def change_nickname(self, nickname):
         self.server.nickname_to_id[nickname.lower()] = self
@@ -31,6 +33,6 @@ class IRCUser(object):
     def destroy(self):
         del self.server.users[self.id]
         del self.server.nickname_to_id[self.nickname.lower()]
-        for channel in self.channels:
-            channel.remove_user(self)
-    
+        for channel_name in list(self.channels.keys()):
+            self.channels[channel_name].remove_user(self)
+            del self.channels[channel_name]

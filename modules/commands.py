@@ -20,7 +20,8 @@ class Module(object):
         self.set_callback(event["child"])
     
     def on_message(self, event):
-        command_prefix = event["server"].config.get("command-prefix", "!")
+        command_prefix = event["channel"].config.get("command-prefix", event[
+            "server"].config.get("command-prefix", "!"))
         channel = event.get("channel")
         if not event["action"] and (not channel or event[
                 "text"].startswith(command_prefix)):
