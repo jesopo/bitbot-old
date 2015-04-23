@@ -1,6 +1,7 @@
 import re, traceback, urllib.parse, urllib.request
 
 RE_CHARSET = re.compile("charset=(\S+)", re.I)
+REGEX_MAX_LENGTH = re.compile(".{1,300}(?=\s|$)")
 
 def get_url(url, **get_params):
     data = ""

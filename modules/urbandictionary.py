@@ -1,9 +1,9 @@
-import json, re
+import json
+import re
 import ModuleHelpers
 
 URBANDICTIONARY_URL = "http://api.urbandictionary.com/v0/define"
 REGEX_NUMBER = re.compile(" -n ?(\d+)$")
-REGEX_MAX_LENGTH = re.compile(".{1,300}(?=\s|$)")
 
 class Module(object):
     _name = "UrbanDictionary"
@@ -28,7 +28,7 @@ class Module(object):
             definition = page["list"][number]
             text = "%s: %s" % (definition["word"], definition["definition"
                 ].strip().replace("\n", " ").replace("\r","").replace("  ", " "))
-            length_match = re.match(REGEX_MAX_LENGTH, text)
+            length_match = re.match(ModuleHelpers.RE_MAX_LENGTH, text)
             if length_match and not text == length_match.group(0):
                 text = "%s... (%s)" % (length_match.group(), definition[
                     "permalink"])
