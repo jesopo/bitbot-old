@@ -25,6 +25,7 @@ class IRCServer(object):
         # what the server says they are
         self.nickname = config.get("nickname")
         self.alt_nickname = config.get("alt-nickname")
+        self.tried_alt = False
         self.username = config.get("username")
         self.realname = config.get("realname")
         
@@ -71,6 +72,11 @@ class IRCServer(object):
         user = self.get_user_by_nickname(nickname)
         if user:
             user.destroy()
+    
+    def check_users(self):
+        for user in list(self.users.values()):
+            if len(user.channels) == 0:
+                user.destroy()
     
     def has_channel(self, channel_name):
         return channel_name.lower() in self.channels
@@ -162,10 +168,37 @@ class IRCServer(object):
     def send_quit(self, message=None):
         message = message or self.config.get("quit-message", "Leaving")
         self.queue_line("QUIT :%s" % message)
-    def send_message(self, recipient, message):
-        if recipient and message:
-            self.queue_line("PRIVMSG %s :%s" % (recipient, message))
-        
+    def send_message(self, recipient, text):
+        if recipient and text:
+            channel = self.get_channel(recipient)
+            user = self.get_user_by_nickname(recipient)
+            sub_event = None
+            if channel:
+                sub_event = "channel"
+            elif user:
+                sub_event = "private"
+            self.queue_line("PRIVMSG %s :%s" % (recipient, text))
+            if sub_event:
+                self.bot.events.on("send").on("message").on(
+                    sub_event).call(text=text, user=user, channel=channel,
+                    sender=self.get_user_by_nickname(self.nickname),
+                    action=False)
+    def send_action(self, recipient, text):
+        if recipient and text:
+            channel = self.get_channel(recipient)
+            user = self.get_user_by_nickname(recipient)
+            sub_event = None
+            if channel:
+                sub_event = "channel"
+            elif user:
+                sub_event = "private"
+            self.queue_line("PRIVMSG %s :\01ACTION %s\01" % (
+                recipient, text))
+            if sub_event:
+                self.bot.events.on("send").on("message").on(
+                    sub_event).call(text=text, user=user, channel=channel,
+                    sender=self.get_user_by_nickname(self.nickname),
+                    action=True)
     
     def get_own_hostmask(self):
         return "%s!%s@%s" % (nickname, username, hostname)
@@ -269,6 +302,7 @@ class IRCServer(object):
             self.hostname = IRCHelpers.get_index(line_split, 5)
             self.realname = IRCHelpers.arbitrary(line_split[7:])
     def handle_352(self, line, line_split):
+        channel = self.get_channel(IRCHelpers.get_index(line_split, 3))
         nickname = IRCHelpers.get_index(line_split, 7)
         if not self.has_user(nickname):
             self.add_user(nickname)
@@ -283,6 +317,10 @@ class IRCServer(object):
                 user.hostname = hostname
             if realname:
                 user.realname = realname
+            user.join_channel(channel)
     def handle_PING_(self, line, line_split):
         nonce = IRCHelpers.arbitrary(line_split[1:])
         self.send_pong(nonce)
+    def handle_433(self, line, line_split):
+        if not self.tried_alt and self.alt_nickname:
+            self.send_nick(self.alt_nickname)

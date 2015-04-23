@@ -56,6 +56,7 @@ class Bot(object):
                     line = server.read_line()
                     if line:
                         print(line)
+                        server.check_users()
                     else:
                         self.reconnect(server)
             for server in writable:
