@@ -67,7 +67,10 @@ class IRCServer(object):
             return self.users.get(self.nickname_to_id.get(nickname.lower(),
                 None), None)
     def add_user(self, nickname):
-        IRCUser.IRCUser(nickname, self)
+        if not self.has_user(nickname):
+            IRCUser.IRCUser(nickname, self)
+            self.bot.events.on("new").on("user").call(
+                user=self.get_user_by_nickname(nickname), server=self)
     def remove_user(self, nickname):
         user = self.get_user_by_nickname(nickname)
         if user:
@@ -82,6 +85,12 @@ class IRCServer(object):
         return channel_name.lower() in self.channels
     def get_channel(self, channel_name):
         return self.channels.get(channel_name.lower(), None)
+    def add_channel(self, channel_name):
+        if not self.has_channel(channel_name):
+            self.channels[channel_name.lower()] = IRCChannel.IRCChannel(
+                channel_name, self)
+            self.bot.events.on("new").on("channel").call(
+                channel=self.get_channel(channel_name), server=self)
     
     def connect(self):
         assert self.server_hostname
@@ -210,9 +219,7 @@ class IRCServer(object):
         channel_name = IRCHelpers.remove_colon(
             IRCHelpers.get_index(line_split, 2))
         if self.own_nickname(nickname):
-            if not channel_name.lower() in self.channels:
-                self.channels[channel_name.lower()] = IRCChannel.IRCChannel(
-                    channel_name, self)
+            self.add_channel(channel_name)
             self.get_channel(channel_name).send_who()
             self.bot.events.on("self").on("join").call(line=line,
                 line_split=line_split, server=self,
