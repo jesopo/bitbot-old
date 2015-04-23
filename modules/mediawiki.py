@@ -1,18 +1,28 @@
+import re
+
 import json
 import ModuleHelpers
 
-MEDIAWIKI_URL = "http://en.wikipedia.org/w/api.php"
+WIKIPEDIA_URL = "http://en.wikipedia.org/w/api.php"
+
+REGEX_MAX_LENGTH = re.compile(".{1,300}(?=\.|\s|$)")
 
 class Module(object):
     _name = "MediaWiki"
     def __init__(self, bot):
         self.bot = bot
-        bot.events.on("received").on("command").on("wiki").hook(self.wiki,
+        bot.events.on("received").on("command").on("wi").hook(self.wiki,
+            min_args=1)
+        bot.events.on("received").on("command").on("mw").hook(self.wiki,
             min_args=1)
 
     def wiki(self, event):
         title = event["args"]
-        page = ModuleHelpers.get_url(MEDIAWIKI_URL, format="json",
+        if event["command"] == "wi":
+            wiki_url = WIKIPEDIA_URL
+        else:
+            wiki_url = event["server"].config.get("mediawiki", WIKIPEDIA_URL)
+        page = ModuleHelpers.get_url(wiki_url, format="json",
             action="query", prop="extracts", exintro="", explaintext="",
             titles=title)
         if page:
@@ -21,14 +31,12 @@ class Module(object):
             return "Failed to load page"
         for i in page["query"]["pages"]:
             try:
-                extract = page["query"]["pages"][i]["extract"]
-                return extract[:extract.index(".") + 1] #Only the first sentence
-            except ValueError:
-                if len(extract) < 100:
-                    return extract
+                text = page["query"]["pages"][i]["extract"]
+                length_match = re.match(REGEX_MAX_LENGTH, text)
+                if not length_match:
+                    return text
                 else:
-                    return extract[:100]
+                    return length_match.group()
             except KeyError:
                 pass
         return "No wiki page found!"
-
