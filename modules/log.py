@@ -11,6 +11,7 @@ class Module(object):
         log["text"] = event["text"]
         log["nickname"] = event["sender"].nickname
         log["action"] = event["action"]
+        log["self"] = event["sender"].nickname == event["server"].nickname
         return log
     
     def do_log(self, log_list, log, server):

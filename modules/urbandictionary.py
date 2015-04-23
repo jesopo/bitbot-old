@@ -27,7 +27,7 @@ class Module(object):
         if number >= 0 and len(page["list"]) > number:
             definition = page["list"][number]
             text = "%s: %s" % (definition["word"], definition["definition"
-                ].strip().replace("\n", "").replace("\r",""))
+                ].strip().replace("\n", " ").replace("\r","").replace("  ", " "))
             length_match = re.match(REGEX_MAX_LENGTH, text)
             if length_match and not text == length_match.group(0):
                 text = "%s... (%s)" % (length_match.group(), definition[

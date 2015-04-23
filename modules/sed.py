@@ -34,7 +34,7 @@ class Module(object):
             replace = sed_split[2].replace("\\/", "/")
             
             for log in event["channel"].log:
-                if log["text"].startswith("s/"):
+                if log["text"].startswith("s/") or log["self"]:
                     continue
                 match = re.search(pattern, log["text"])
                 if match:
