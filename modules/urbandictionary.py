@@ -6,6 +6,7 @@ REGEX_NUMBER = re.compile(" -n ?(\d+)$")
 REGEX_MAX_LENGTH = re.compile(".{1,300}(?=\s|$)")
 
 class Module(object):
+    _name = "UrbanDictionary"
     def __init__(self, bot):
         self.bot = bot
         bot.events.on("received").on("command").on("ud").hook(self.ud, min_args=

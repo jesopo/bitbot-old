@@ -182,7 +182,7 @@ class IRCServer(object):
                 self.bot.events.on("send").on("message").on(
                     sub_event).call(text=text, user=user, channel=channel,
                     sender=self.get_user_by_nickname(self.nickname),
-                    action=False)
+                    action=False, server=self)
     def send_action(self, recipient, text):
         if recipient and text:
             channel = self.get_channel(recipient)
@@ -198,7 +198,7 @@ class IRCServer(object):
                 self.bot.events.on("send").on("message").on(
                     sub_event).call(text=text, user=user, channel=channel,
                     sender=self.get_user_by_nickname(self.nickname),
-                    action=True)
+                    action=True, server=self)
     
     def get_own_hostmask(self):
         return "%s!%s@%s" % (nickname, username, hostname)
