@@ -88,7 +88,8 @@ class IRCServer(object):
     def add_channel(self, channel_name):
         if not self.has_channel(channel_name):
             self.channels[channel_name.lower()] = IRCChannel.IRCChannel(
-                channel_name, self)
+                channel_name, self, self.config.get("channels", {}).get(
+                channel_name, {}))
             self.bot.events.on("new").on("channel").call(
                 channel=self.get_channel(channel_name), server=self)
     
@@ -296,7 +297,7 @@ class IRCServer(object):
         elif user:
             self.bot.events.on("received").on("message").on("private").call(
                 line=line, line_split=line_split, server=self, text=text,
-                sender=sender, action=acton)
+                text_split=text_split, sender=sender, action=action)
     def handle_001(self, line, line_split):
         self.nickname = IRCHelpers.get_index(line_split, 2)
         self.send_whois(self.nickname)

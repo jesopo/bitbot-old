@@ -1,9 +1,10 @@
 import IRCChannelMode
 
 class IRCChannel(object):
-    def __init__(self, name, server):
+    def __init__(self, name, server, config):
         self.name = name
         self.server = server
+        self.config = config
         self.users = {}
         self.modes = {}
         self.user_modes = {}
