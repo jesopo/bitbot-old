@@ -1,11 +1,8 @@
 import re
-
 import json
 import ModuleHelpers
 
 WIKIPEDIA_URL = "http://en.wikipedia.org/w/api.php"
-
-REGEX_MAX_LENGTH = re.compile(".{1,300}(?=\.|\s|$)")
 
 class Module(object):
     _name = "MediaWiki"
@@ -32,7 +29,7 @@ class Module(object):
         for i in page["query"]["pages"]:
             try:
                 text = page["query"]["pages"][i]["extract"]
-                length_match = re.match(REGEX_MAX_LENGTH, text)
+                length_match = re.match(ModuleHelpers.RE_MAX_LENGTH, text)
                 if not length_match:
                     return text
                 else:
