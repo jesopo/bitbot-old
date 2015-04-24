@@ -13,6 +13,8 @@ class Module(object):
     
     def get_def(self, term):
         app_id = self.bot.config.get("wolframalpha-app-id")
+        if not app_id:
+            return "no wolframalpha app id set."
         page = Utils.get_url(WA_URL, input=term, appid=app_id,
             format="plaintext")
         if page:

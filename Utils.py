@@ -10,17 +10,14 @@ def get_url(url, **get_params):
     if get_params:
         data = "%s" % urllib.parse.urlencode(get_params)
     url = "%s?%s" % (url, data)
+    request = urllib.request.Request(url)
+    request.add_header("Accept-Language", "en-gb")
     try:
-        response = urllib.request.urlopen(url)
+        response = urllib.request.urlopen(request)
     except:
         traceback.print_exc()
         return None
-    encoding = response.info().get("content-type", "")
-    match = re.search(REGEX_CHARSET, encoding)
-    if match:
-        encoding = match.group(1)
-    else:
-        encoding = "utf8"
+    encoding = response.info().get_content_charset() or "utf8"
     
     return response.read().decode(encoding)
 
