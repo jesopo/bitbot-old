@@ -7,5 +7,5 @@ class Module(object):
     def on_connect(self, event):
         for channel_name in event["server"].config.get("channels", {}):
             if (event["server"].config["channels"][
-                    channel_name] or {}).get("autojoin", False):
+                    channel_name] or {}).get("autojoin", True):
                 event["server"].send_join(channel_name)

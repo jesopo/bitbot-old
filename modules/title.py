@@ -1,5 +1,5 @@
 import re
-import ModuleHelpers
+import Utils
 
 RE_TITLE = re.compile("<title>(.*?)</title>", re.I)
 RE_URL = re.compile("https?://\S+", re.I)
@@ -27,7 +27,7 @@ class Module(object):
             url = self.find_last_url(event["channel"])
         
         if url:
-            page = ModuleHelpers.get_url(url)
+            page = Utils.get_url(url)
             if page:
                 title = re.search(RE_TITLE, page)
                 if title:

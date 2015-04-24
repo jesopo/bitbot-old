@@ -1,10 +1,11 @@
 import traceback
 import xml.etree.ElementTree as etree
-import ModuleHelpers
+import Utils
 
 WA_URL = "http://api.wolframalpha.com/v2/query"
 
 class Module(object):
+    _name = "WolframAlpha"
     def __init__(self, bot):
         self.bot = bot
         bot.events.on("received").on("command").on("wa").hook(self.wa,
@@ -12,7 +13,7 @@ class Module(object):
     
     def get_def(self, term):
         app_id = self.bot.config.get("wolframalpha-app-id")
-        page = ModuleHelpers.get_url(WA_URL, input=term, appid=app_id,
+        page = Utils.get_url(WA_URL, input=term, appid=app_id,
             format="plaintext")
         if page:
             try:

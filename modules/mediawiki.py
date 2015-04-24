@@ -1,6 +1,5 @@
-import re
-import json
-import ModuleHelpers
+import json, re
+import Utils
 
 WIKIPEDIA_URL = "http://en.wikipedia.org/w/api.php"
 
@@ -19,7 +18,7 @@ class Module(object):
             wiki_url = WIKIPEDIA_URL
         else:
             wiki_url = event["server"].config.get("mediawiki", WIKIPEDIA_URL)
-        page = ModuleHelpers.get_url(wiki_url, format="json",
+        page = Utils.get_url(wiki_url, format="json",
             action="query", prop="extracts", exintro="", explaintext="",
             titles=title)
         if page:
@@ -29,11 +28,7 @@ class Module(object):
         for i in page["query"]["pages"]:
             try:
                 text = page["query"]["pages"][i]["extract"]
-                length_match = re.match(ModuleHelpers.RE_MAX_LENGTH, text)
-                if not length_match:
-                    return text
-                else:
-                    return length_match.group()
+                return text
             except KeyError:
                 pass
         return "No wiki page found!"

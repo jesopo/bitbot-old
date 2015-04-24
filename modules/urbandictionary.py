@@ -1,6 +1,5 @@
-import json
-import re
-import ModuleHelpers
+import json, re
+import Utils
 
 URBANDICTIONARY_URL = "http://api.urbandictionary.com/v0/define"
 REGEX_NUMBER = re.compile(" -n ?(\d+)$")
@@ -19,7 +18,7 @@ class Module(object):
         if match:
             number = int(match.group(1))-1
             term = re.sub(REGEX_NUMBER, "", term)
-        page = ModuleHelpers.get_url(URBANDICTIONARY_URL, term=term)
+        page = Utils.get_url(URBANDICTIONARY_URL, term=term)
         if page:
             page = json.loads(page)
         else:
@@ -28,10 +27,6 @@ class Module(object):
             definition = page["list"][number]
             text = "%s: %s" % (definition["word"], definition["definition"
                 ].strip().replace("\n", " ").replace("\r","").replace("  ", " "))
-            length_match = re.match(ModuleHelpers.RE_MAX_LENGTH, text)
-            if length_match and not text == length_match.group(0):
-                text = "%s... (%s)" % (length_match.group(), definition[
-                    "permalink"])
             return text
         else:
             return "Definition number does not exist"
