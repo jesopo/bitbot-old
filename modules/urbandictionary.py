@@ -26,7 +26,7 @@ class Module(object):
         if number >= 0 and len(page["list"]) > number:
             definition = page["list"][number]
             text = "%s: %s" % (definition["word"], definition["definition"
-                ].strip().replace("\n", " ").replace("\r","").replace("  ", " "))
+                ].strip())
             return text
         else:
             return "Definition number does not exist"

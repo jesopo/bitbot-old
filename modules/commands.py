@@ -31,7 +31,7 @@ class Module(object):
         if not text == text_truncated:
             channel.command_more = [text.replace(text_truncated, "", 1
                 ).lstrip(), module_name]
-            text = "%s... (more)" % text_truncated
+            text = "%s (more)" % text_truncated
         channel.send_message(text)
     
     def on_message(self, event):
@@ -54,10 +54,11 @@ class Module(object):
             # other checks maybe
             text = function(event)
             if text:
+                text = text.replace("\r", "").replace("\n", " ").replace("  ", " ")
                 self.send_response(text, event["channel"], function.__self__._name)
     
     def more(self, event):
         if event["channel"].command_more:
             text, module_name = event["channel"].command_more
             event["channel"].command_more = None
-            self.send_response(text, event["channel"], module_name)
+            self.send_response("(continued) %s" % text, event["channel"], module_name)
