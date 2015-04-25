@@ -34,7 +34,7 @@ class Module(object):
                     return self.get_title(urllib.parse.urljoin(url,
                         meta_refresh_match.group(1)))
             else:
-                return title_match.group(1)
+                return Utils.html_entities(title_match.group(1))
     
     def title(self, event):
         url = None

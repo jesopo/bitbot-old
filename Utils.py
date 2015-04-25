@@ -1,8 +1,10 @@
-import re, traceback, urllib.parse, urllib.request
+import html.parser, re, traceback, urllib.parse, urllib.request
 
 REGEX_HOSTMASK = re.compile(":?([^!]*)!([^@]*)@(.*)")
 REGEX_CHARSET = re.compile("charset=(\S+)", re.I)
 REGEX_MAX_LENGTH = re.compile(".{1,300}(?=\s|$)")
+
+h = html.parser.HTMLParser()
 
 # get a webpage, try to decode it by encoding specified in headers or utf8
 def get_url(url, **get_params):
@@ -20,6 +22,10 @@ def get_url(url, **get_params):
     encoding = response.info().get_content_charset() or "utf8"
     
     return response.read().decode(encoding)
+
+# parse html entities
+def html_entities(text):
+    return h.unescape(text)
 
 # remove the colon from a start of the string, if there is one there
 def remove_colon(s):
