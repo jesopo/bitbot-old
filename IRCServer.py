@@ -19,8 +19,12 @@ class IRCServer(object):
         self.password = config.get("password")
         # whether this is an ssl connection or not
         self.ssl = config.get("ssl")
+        # ssl cipher to use
+        self.ssl_ciphers = config.get("ssl-ciphers")
         # the address to bind onto
         self.bindhost = config.get("bindhost")
+        # should this be an IPv4 connection
+        self.ipv4 = config.get("ipv4")
         
         # nickname, username and realname. before connecting these should be set
         # to what they're desired to be. after connecting, these will be set to
@@ -104,14 +108,24 @@ class IRCServer(object):
         assert self.nickname
         self.username = self.username or self.nickname
         self.realname = self.realname or self.nickname
-        self._socket = socket.socket()
+        if self.ipv4:
+            self._socket = socket.socket()
+        else:
+            self._socket = socket.socket(socket.AF_INET6)
+        if self.bindhost:
+            self._socket.bind((self.bindhost, 0))
         try:
             self._socket.connect((self.server_hostname, self.server_port))
         except Exception as e:
             raise e
         try:
             if self.ssl:
-                self._socket = ssl.wrap_socket(self._socket)
+                context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+                context.options |= ssl.OP_NO_SSLv2
+                context.options |= ssl.OP_NO_SSLv3
+                if self.ssl_ciphers:
+                    context.set_ciphers(self.ssl_ciphers)
+                self._socket = context.wrap_socket(self._socket)
         except Exception as e:
             raise e
         self.send_pass(self.password)
@@ -214,6 +228,9 @@ class IRCServer(object):
                     sub_event).call(text=text, user=user, channel=channel,
                     sender=self.get_user_by_nickname(self.nickname),
                     action=True, server=self)
+    def send_notice(self, recipient, text):
+        if recipient and text:
+            self.queue_line("NOTICE %s :%s" % (recipient, text))
     
     def get_own_hostmask(self):
         return "%s!%s@%s" % (nickname, username, hostname)

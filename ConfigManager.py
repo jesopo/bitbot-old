@@ -3,36 +3,107 @@ import yaml
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
 
-class Config(object):
-    def __init__(self, path):
-        self.path = path
-        self.config = {}
-        self.read()
+class ConfigObject(object):
+    def __init__(self, config, parent):
+        self.initialised = False
+        
+        self.parent = parent
+        self.filename = None
+        self.underlying = None
+        if type(self) == ConfigDictionary:
+            self.underlying = dict
+        elif type(self) == ConfigList:
+            self.underlying = list
+        self.underlying.__init__(self)
+        self.make(config)
+        self.overwrites()
+        self.initialised = True
     
-    def read(self):
-        if os.path.isfile(self.path):
-            with open(self.path) as file_object:
-                self.config = yaml.load(file_object.read())
+    def commit(self, config=None, filename=None):
+        if self.initialised:
+            self.parent.commit(self, self.filename)
     
-    def save(self):
-        with open(self.path, "w") as file_object:
-            file_object.write(yaml.dump(self.config))
+    def overwrites(self):
+        pass
     
-    def get(self, key, default=None):
-        return self.config.get(key, default)
-    def __getitem__(self, key):
-        return self.config[key]
+    def make(self, config):
+        pass
+    def unmake(self):
+        pass
+    
+    def wrap_object(self, obj):
+        if type(obj) == dict:
+            config = ConfigDictionary(obj, self)
+            return config
+        elif type(obj) == list:
+            config = ConfigList(obj, self)
+            return config
+        return obj
+    
+    def commit_call(self, function):
+        def call(*args, **kwargs):
+            val = function(*args, **kwargs)
+            self.commit(self)
+            return val
+        setattr(self, function.__name__, call)
+    
     def __setitem__(self, key, value):
-        self.config[key] = value
+        self.underlying.__setitem__(self, key, self.wrap_object(value))
+        self.commit()
     def __delitem__(self, key):
-        del self.config[key]
-    def __contains__(self, key):
-        return key in self.config
-    def __len__(self):
-        return len(self.config)
+        self.underlying.__delitem__(self, key)
+        self.commit()
+
+class ConfigDictionary(ConfigObject, dict):
+    def overwrites(self):
+        self.commit_call(self.clear)
+        self.commit_call(self.pop)
+        self.commit_call(self.popitem)
     
-    def __exit__(self, e_type, e_value, e_traceback):
-        self.save()
+    def update(self, other=None, **kwargs):
+        other = other or kwargs
+        for key in other:
+            other[key] = self.wrap_object(other[key])
+        self.underlying.update(self, other)
+    
+    def make(self, config):
+        for key in config:
+            self[key] = config[key]
+    def unmake(self):
+        new_config = {}
+        for key in self:
+            val = self[key]
+            if hasattr(val, "unmake"):
+                val = val.unmake()
+            new_config[key] = val
+        return new_config
+class ConfigList(ConfigObject, list):
+    def overwrites(self):
+        self.commit_call(self.remove)
+        self.commit_call(self.pop)
+        self.commit_call(self.reverse)
+    
+    def insert(self, index, value):
+        self.underlying.insert(self, index, self.wrap_object(value))
+        self.commit()
+    def append(self, value):
+        self.underlying.append(self, self.wrap_object(value))
+        self.commit()
+    def extend(self, other):
+        self.underlying.append(self, other)
+        self.commit()
+    
+    def make(self, config):
+        for item in config:
+            self.append(self.wrap_object(item))
+    def unmake(self):
+        new_config = []
+        for item in self:
+            val = item
+            if hasattr(val, "unmake"):
+                val = val.unmake()
+            new_config.append(val)
+        return new_config
 
 class ConfigManager(object):
     def __init__(self, directory="settings"):
@@ -43,13 +114,25 @@ class ConfigManager(object):
     
     def list_configs(self, prefix=""):
         config_names = []
-        
         for filename in glob.glob(os.path.join(self.directory, "*.conf")):
             config_names.append(os.path.basename(filename)[:-5])
         return config_names
     
+    def open_config(self, filename):
+        if os.path.isfile(filename):
+            with open(filename) as file_object:
+                return yaml.load(file_object.read())
+        return {}
+    
+    def commit(self, config, filename):
+        with open(filename, "w") as file_object:
+            file_object.write(yaml.dump(config.unmake(), default_flow_style=False))
+    
     def get_config(self, name):
         name = name.lower()
         if not name in self.configs:
-            self.configs[name] = Config("%s.conf" % os.path.join(self.directory, name))
+            filename = "%s.conf" % os.path.join(self.directory, name)
+            config = ConfigDictionary(self.open_config(filename) or {}, self)
+            config.filename = filename
+            self.configs[name] = config
         return self.configs[name]

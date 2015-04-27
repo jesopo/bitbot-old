@@ -2,7 +2,7 @@ import json, re
 import Utils
 
 URBANDICTIONARY_URL = "http://api.urbandictionary.com/v0/define"
-REGEX_NUMBER = re.compile(" -n ?(\d+)$")
+REGEX_NUMBER = re.compile(" -n\s*(\d+)$")
 
 class Module(object):
     _name = "UrbanDictionary"
