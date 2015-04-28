@@ -18,7 +18,7 @@ class Module(object):
         if match:
             number = int(match.group(1))-1
             term = re.sub(REGEX_NUMBER, "", term)
-        page = Utils.get_url(URBANDICTIONARY_URL, term=term)
+        page = Utils.get_url(URBANDICTIONARY_URL, get_params={"term": term})
         if page:
             page = json.loads(page)
         else:

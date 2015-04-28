@@ -19,8 +19,9 @@ class Module(object):
             return "no google api key set."
         if not search_id:
             return "no google search id set."
-        page = Utils.get_url(GOOGLE_URL, q=event["args"], key=api_key,
-            cx=search_id, prettyPrint="true", num="1", gl="uk")
+        page = Utils.get_url(GOOGLE_URL, get_params={"q": event["args"],
+            "key": api_key, "cx": search_id, "prettyPrint": "true",
+            "num": "1", "gl": "uk"})
         page = json.loads(page)
         if "items" in page and len(page["items"]):
             return page["items"][0]["link"]

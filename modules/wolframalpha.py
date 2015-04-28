@@ -15,8 +15,8 @@ class Module(object):
         app_id = self.bot.config.get("wolframalpha-app-id")
         if not app_id:
             return "no wolframalpha app id set."
-        page = Utils.get_url(WA_URL, input=term, appid=app_id,
-            format="plaintext")
+        page = Utils.get_url(WA_URL, get_params={"input": term,
+            "appid": app_id, "format": "plaintext"})
         if page:
             try:
                 page = etree.fromstring(page)
