@@ -21,7 +21,7 @@ class IRCUser(object):
         channel.remove_user(self)
     
     def change_nickname(self, nickname):
-        self.server.nickname_to_id[nickname.lower()] = self
+        self.server.nickname_to_id[nickname.lower()] = self.id
         del self.server.nickname_to_id[self.nickname.lower()]
         self.nickname = nickname
     

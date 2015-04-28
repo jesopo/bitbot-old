@@ -7,13 +7,19 @@ REGEX_MAX_LENGTH = re.compile(".{1,300}(?=\s|$)")
 h = html.parser.HTMLParser()
 
 # get a webpage, try to decode it by encoding specified in headers or utf8
-def get_url(url, **get_params):
+def get_url(url, **kwargs):
+    method = kwargs.get("method", "GET")
+    get_params = kwargs.get("get_params", "")
+    post_params = kwargs.get("post_params", None)
     data = ""
     if get_params:
-        data = "%s" % urllib.parse.urlencode(get_params)
-    url = "%s?%s" % (url, data)
-    request = urllib.request.Request(url)
+        get_params = urllib.parse.urlencode(get_params).encode("utf8")
+    if post_params:
+        post_params = urllib.parse.urlencode(post_params).encode("utf8")
+    url = "%s?%s" % (url, get_params)
+    request = urllib.request.Request(url, post_params)
     request.add_header("Accept-Language", "en-gb")
+    request.method = method
     try:
         response = urllib.request.urlopen(request)
     except:

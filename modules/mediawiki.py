@@ -18,9 +18,9 @@ class Module(object):
             wiki_url = WIKIPEDIA_URL
         else:
             wiki_url = event["server"].config.get("mediawiki", WIKIPEDIA_URL)
-        page = Utils.get_url(wiki_url, format="json",
-            action="query", prop="extracts", exintro="", explaintext="",
-            titles=title)
+        page = Utils.get_url(wiki_url, get_params={"format": "json",
+            "action": "query", "prop": "extracts", "exintro": "",
+            "explaintext": "", "titles": title})
         if page:
             page = json.loads(page)
         else:
@@ -28,7 +28,8 @@ class Module(object):
         for i in page["query"]["pages"]:
             try:
                 text = page["query"]["pages"][i]["extract"]
+                assert text
                 return text
-            except KeyError:
+            except (KeyError, AssertionError):
                 pass
         return "No wiki page found!"

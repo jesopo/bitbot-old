@@ -293,7 +293,7 @@ class IRCServer(object):
                     current_index += 1
     def handle_NICK(self, line, line_split):
         nickname, username, hostname = Utils.hostmask_split(line_split[0])
-        new_nick = Utils.get_index(line_split, 2)
+        new_nick = Utils.remove_colon(Utils.get_index(line_split, 2))
         if self.own_nickname(nickname):
             self.nickname = new_nick
         else:

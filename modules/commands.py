@@ -56,6 +56,9 @@ class Module(object):
             if text:
                 text = text.replace("\r", "").replace("\n", " ").replace("  ", " ")
                 self.send_response(text, event["channel"], function.__self__._name)
+        else:
+            self.send_response("not enough arguments.", event["channel"],
+                function.__self__._name)
     
     def more(self, event):
         if event["channel"].command_more:
