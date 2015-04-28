@@ -265,7 +265,7 @@ class IRCServer(object):
         chanenl_name = Utils.get_index(line_split, 2)
         channel = self.get_channel(Utils.get_index(line_split, 2))
         if self.own_nickname(nickname):
-            self.remove_channel(channel_name)
+            self.remove_channel(channel)
         else:
             self.get_user_by_nickname(nickname).part_channel(channel)
     def handle_QUIT(self, line, line_split):
