@@ -101,6 +101,10 @@ class IRCServer(object):
                 channel_name, None) or {})
             self.bot.events.on("new").on("channel").call(
                 channel=self.get_channel(channel_name), server=self)
+    def remove_channel(self, channel):
+        for user in channel.users:
+            channel.users[user].part_channel(channel)
+        del self.channels[channel.name.lower()]
     
     def connect(self):
         assert self.server_hostname
@@ -250,14 +254,20 @@ class IRCServer(object):
         else:
             if not self.has_user(nickname):
                 self.add_user(nickname)
+            user = self.get_user_by_nickname(nickname)
+            channel = self.get_channel(channel_name)
+            user.join_channel(channel)
             self.bot.events.on("received").on("join").call(line=line,
-                line_split=line_split, server=self,
-                channel=self.get_channel(channel_name),
-                user=self.get_user_by_nickname(nickname))
+                line_split=line_split, server=self, channel=channel,
+                user=user)
     def handle_PART(self, line, line_split):
         nickname, username, hostname = Utils.hostmask_split(line_split[0])
+        chanenl_name = Utils.get_index(line_split, 2)
+        channel = self.get_channel(Utils.get_index(line_split, 2))
         if self.own_nickname(nickname):
-            self.part_channel(Utils.get_index(line_split, 2))
+            self.remove_channel(channel_name)
+        else:
+            self.get_user_by_nickname(nickname).part_channel(channel)
     def handle_QUIT(self, line, line_split):
         nickname, username, hostname = Utils.hostmask_split(line_split[0])
         user = self.get_user_by_nickname(nickname)
@@ -375,5 +385,6 @@ class IRCServer(object):
                 if char in self.channel_mode_symbols:
                     # make mark down the mode
                     nickname = nickname[1:]
-            self.add_user(nickname)
-            self.get_user_by_nickname(nickname).join_channel(channel)
+            if not self.own_nickname(nickname):
+                self.add_user(nickname)
+                self.get_user_by_nickname(nickname).join_channel(channel)

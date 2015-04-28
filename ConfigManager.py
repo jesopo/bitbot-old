@@ -4,16 +4,12 @@ import yaml
 current_directory = os.path.dirname(os.path.abspath(__file__))
 
 class ConfigObject(object):
+    underlying = object
     def __init__(self, config, parent):
         self.initialised = False
         
         self.parent = parent
         self.filename = None
-        self.underlying = None
-        if type(self) == ConfigDictionary:
-            self.underlying = dict
-        elif type(self) == ConfigList:
-            self.underlying = list
         self.underlying.__init__(self)
         self.make(config)
         self.overwrites()
@@ -55,6 +51,7 @@ class ConfigObject(object):
         self.commit()
 
 class ConfigDictionary(ConfigObject, dict):
+    underlying = dict
     def overwrites(self):
         self.commit_call(self.clear)
         self.commit_call(self.pop)
@@ -78,6 +75,7 @@ class ConfigDictionary(ConfigObject, dict):
             new_config[key] = val
         return new_config
 class ConfigList(ConfigObject, list):
+    underlying = list
     def overwrites(self):
         self.commit_call(self.remove)
         self.commit_call(self.pop)
