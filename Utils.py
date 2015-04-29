@@ -13,7 +13,7 @@ def get_url(url, **kwargs):
     post_params = kwargs.get("post_params", None)
     data = ""
     if get_params:
-        get_params = urllib.parse.urlencode(get_params).encode("utf8")
+        get_params = urllib.parse.urlencode(get_params)
     if post_params:
         post_params = urllib.parse.urlencode(post_params).encode("utf8")
     url = "%s?%s" % (url, get_params)

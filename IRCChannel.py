@@ -50,3 +50,5 @@ class IRCChannel(object):
         self.server.send_who(self.name)
     def send_message(self, message):
         self.server.send_message(self.name, message)
+    def send_kick(self, user, reason=None):
+        self.server.send_kick(self.name, user.nickname, reason)

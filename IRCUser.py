@@ -2,14 +2,15 @@ import uuid
 
 class IRCUser(object):
     def __init__(self, nickname, server):
-        self.nickname = nickname
         self.server = server
         self.id = None
         while not self.id or self.id in self.server.users:
             self.id = uuid.uuid1().hex
+        self.nickname = None
+        self.change_nickname(nickname)
         self.server.users[self.id] = self
-        self.server.nickname_to_id[self.nickname.lower()] = self.id
         self.channels = {}
+        self._destroyed = False
     
     def join_channel(self, channel):
         if not channel.name in self.channels:
@@ -22,11 +23,15 @@ class IRCUser(object):
     
     def change_nickname(self, nickname):
         self.server.nickname_to_id[nickname.lower()] = self.id
-        del self.server.nickname_to_id[self.nickname.lower()]
+        if self.nickname:
+            del self.server.nickname_to_id[self.nickname.lower()]
         self.nickname = nickname
+        self.nickname_lower = nickname.lower()
     
     def send_who(self):
         self.server.send_who(self.nickname)
+    def send_whois(self):
+        self.server.send_whois(self.nickname)
     def send_message(self, text):
         self.server.send_message(self.nickname, text)
     def send_notice(self, text):
@@ -38,3 +43,6 @@ class IRCUser(object):
         for channel_name in list(self.channels.keys()):
             self.channels[channel_name].remove_user(self)
             del self.channels[channel_name]
+        self._destroyed = True
+    def is_destroyed(self):
+        return self._destroyed
