@@ -71,7 +71,7 @@ class Bot(object):
                                 if self.config.get("verbose", True):
                                     print(line)
                     else:
-                        server.reconnect();
+                        self.reconnect(server)
             for server in writable:
                 if server in self.other_fds:
                     self.events.on("other_fds").on("writable").on(
