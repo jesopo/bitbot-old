@@ -187,7 +187,8 @@ class IRCServer(object):
             line = self._send_queue.pop(0)
             if self.bot.config.get("verbose", True):
                 print(line.rstrip("\r\n"))
-            line = line.encode("utf8")
+            if type(line) == str:
+                line = line.encode("utf8")
             sent = self._socket.send(line)
             if sent < len(line):
                 self._send_queue.insert(0, line[sent:])

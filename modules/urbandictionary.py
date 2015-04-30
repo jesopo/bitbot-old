@@ -23,10 +23,13 @@ class Module(object):
             page = json.loads(page)
         else:
             return "Failed to get definition"
-        if number >= 0 and len(page["list"]) > number:
-            definition = page["list"][number]
-            text = "%s: %s" % (definition["word"], definition["definition"
-                ].strip())
-            return text
+        if len(page["list"]) > 0:
+            if number >= 0 and len(page["list"]) > number:
+                definition = page["list"][number]
+                text = "%s: %s" % (definition["word"], definition["definition"
+                    ].strip())
+                return text
+            else:
+                return "Definition number does not exist"
         else:
-            return "Definition number does not exist"
+            return "No definition."
