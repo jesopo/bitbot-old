@@ -65,14 +65,23 @@ class IRCServer(object):
             self.connected = False
             return None
         line_split = line.split(" ")
-        if self.has_handler(line_split[1]):
-            getattr(self, "handle_%s" % line_split[1])(line, line_split)
-        elif not line_split[0].startswith(":") and self.has_handler(
-                "%s_" % line_split[0]):
-            getattr(self, "handle_%s_" % line_split[0])(line, line_split)
-        elif line_split[1].isdigit():
-            self.bot.events.on("received").on("numeric").on(line_split[1]
-                ).call(line=line, line_split=line_split, server=self)
+        if line_split[0].startswith(":") and len(line_split) > 1:
+            if self.has_handler(line_split[1]):
+                getattr(self, "handle_%s" % line_split[1])(line, line_split)
+            else:
+                if line_split[1].isdigit():
+                    self.bot.events.on("received").on("numeric").on(line_split[
+                        1]).call(line=line, line_split=line_split, server=self)
+                else:
+                    self.bot.events.on("received").on(line_split[1].lower()
+                        ).call(line=line, line_split=line_split, server=self)
+        elif not line_split[0].startswith(":"):
+            if self.has_handler("%s_" % line_split[0]):
+                getattr(self, "handle_%s_" % line_split[0])(line, line_split)
+            else:
+                # maybe add an event call here? not a clue what to call the 
+                # sub event though.
+                pass
         self.check_users()
         return line
     
@@ -89,6 +98,8 @@ class IRCServer(object):
             self.bot.events.on("new").on("user").call(
                 user=self.get_user_by_nickname(nickname), server=self)
     def remove_user(self, nickname):
+        # todo: remove this functionality being handled by the IRCUser object,
+        # I mean, removing it's self from the server's list and stuff. it's weird.
         user = self.get_user_by_nickname(nickname)
         if user:
             user.destroy()
@@ -344,18 +355,17 @@ class IRCServer(object):
         sender = self.get_user_by_nickname(nickname)
         recipient_name = Utils.get_index(line_split, 2)
         channel = self.get_channel(recipient_name)
-        user = self.get_user_by_nickname(recipient_name)
         action = False
         text = Utils.arbitrary(line_split[3:])
         if text.startswith("\01ACTION ") and text.endswith("\01"):
             action = True
-            text = text.replace("\01ACTION ", "", 1)[-1]
+            text = text.replace("\01ACTION ", "", 1)[:-1]
         text_split = text.split()
         if channel:
             self.bot.events.on("received").on("message").on("channel").call(
                 line=line, line_split=line_split, server=self, channel=channel,
                 text=text, text_split=text_split, sender=sender, action=action)
-        elif user:
+        elif self.own_nickname(nickname):
             self.bot.events.on("received").on("message").on("private").call(
                 line=line, line_split=line_split, server=self, text=text,
                 text_split=text_split, sender=sender, action=action)
