@@ -119,8 +119,9 @@ class ConfigManager(object):
     def open_config(self, filename):
         filename_conf = "%s.conf" % filename
         filename_temp = "%s.temp" % filename
-        if os.path.isfile(filename_temp):
-            os.rename(filename_temp, filename_conf)
+        #if os.path.isfile(filename_temp):
+        #    os.rename(filename_temp, filename_conf)
+        # the above was bad, need to rethink this.
         if os.path.isfile(filename_conf):
             with open(filename_conf) as file_object:
                 return yaml.load(file_object.read())
