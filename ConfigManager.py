@@ -117,19 +117,29 @@ class ConfigManager(object):
         return config_names
     
     def open_config(self, filename):
-        if os.path.isfile(filename):
-            with open(filename) as file_object:
+        filename_conf = "%s.conf" % filename
+        filename_temp = "%s.temp" % filename
+        if os.path.isfile(filename_temp):
+            os.rename(filename_temp, filename_conf)
+        if os.path.isfile(filename_conf):
+            with open(filename_conf) as file_object:
                 return yaml.load(file_object.read())
         return {}
     
     def commit(self, config, filename):
-        with open(filename, "w") as file_object:
-            file_object.write(yaml.dump(config.unmake(), default_flow_style=False))
+        filename_conf = "%s.conf" % filename
+        filename_temp = "%s.temp" % filename
+        with open(filename_temp, "w") as file_object:
+            file_object.write(yaml.dump(config.unmake(),
+                default_flow_style=False))
+            file_object.flush()
+            os.fsync(file_object.fileno())
+        os.rename(filename_temp, filename_conf)
     
     def get_config(self, name):
         name = name.lower()
         if not name in self.configs:
-            filename = "%s.conf" % os.path.join(self.directory, name)
+            filename = os.path.join(self.directory, name)
             config = ConfigDictionary(self.open_config(filename) or {}, self)
             config.filename = filename
             self.configs[name] = config
