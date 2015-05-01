@@ -18,7 +18,7 @@ class Module(object):
     def find_last_url(self, target):
         if target:
             for log in target.log:
-                match = re.search(REGEX_URL, log["text"])
+                match = re.search(REGEX_URL, log.text)
                 if match:
                     return match.group(0)
     

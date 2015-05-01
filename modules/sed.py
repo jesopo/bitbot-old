@@ -34,15 +34,15 @@ class Module(object):
             replace = sed_split[2].replace("\\/", "/")
             
             for log in event["channel"].log:
-                if log["text"].startswith("s/") or log["self"]:
+                if log.text.startswith("s/") or log.from_self:
                     continue
-                match = re.search(pattern, log["text"])
+                match = re.search(pattern, log.text)
                 if match:
-                    new_message = re.sub(pattern, replace, log["text"], count)
-                    if not log["action"]:
+                    new_message = re.sub(pattern, replace, log.text, count)
+                    if not log.is_action:
                         event["channel"].send_message("<%s> %s" % (
-                            log["nickname"], new_message))
+                            log.nickname, new_message))
                     else:
                         event["channel"].send_message("* %s %s" % (
-                            log["nickname"], new_message))
+                            log.nickname, new_message))
                     break

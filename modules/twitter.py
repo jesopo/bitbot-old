@@ -14,7 +14,7 @@ class Module(object):
     
     def url_from_log(self, channel):
         for log in channel.log:
-            tweet_id = self.tweet_id(log["text"])
+            tweet_id = self.tweet_id(log.text)
             if tweet_id:
                 return tweet_id
     

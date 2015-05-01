@@ -29,6 +29,8 @@ class Event(object):
     
     def __getitem__(self, key):
         return self._kwargs[key]
+    def __contains__(self, key):
+        return key in self._kwargs
     def get(self, key, default=None):
         return self._kwargs.get(key, default)
 

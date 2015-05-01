@@ -1,5 +1,38 @@
 
 
+class Log(object):
+    def __init__(self, nickname, text, is_action, from_self):
+        self.nickname = nickname
+        self.text = text
+        self.is_action = is_action
+        self.from_self = from_self
+    
+    def matches_regex(self, pattern):
+        return re.search(pattern, self.text)
+
+class LogList(object):
+    def __init__(self, server):
+        self.server = server
+        self._log_list = []
+    
+    def add(self, nickname, text, is_action, from_self):
+        self._log_list.append(Log(nickname, text,is_action, from_self))
+        if len(self._log_list) > self.server.config.get("max-log", 64):
+            self._log_list.pop(0)
+    
+    def find_regex(self, pattern):
+        for log in self:
+            match = log.matches_regex(pattern)
+            if match:
+                return match
+    
+    def __iter__(self):
+        if self._log_list:
+            index = len(self._log_list)-1
+            while index > -1:
+                yield self._log_list[index]
+                index -= 1
+
 class Module(object):
     def __init__(self, bot):
         bot.events.on("received").on("message").on("channel").hook(self.channel)
@@ -8,25 +41,9 @@ class Module(object):
         
         bot.events.on("new").on("channel").hook(self.new_channel)
     
-    def make_log(self, event):
-        log = {}
-        log["text"] = event["text"]
-        log["nickname"] = event["sender"].nickname
-        log["action"] = event["action"]
-        log["self"] = event["sender"].nickname == event["server"].nickname
-        return log
-    
-    def do_log(self, log_list, log, server):
-        log_list.insert(0, log)
-        while len(log_list) > self.server_max_log(server):
-            log_list.pop(len(log_list)-1)
-    
     def new_channel(self, event):
-        event["channel"].log = []
-    
-    def server_max_log(self, server):
-        return server.config.get("max-log", 64)
+        event["channel"].log = LogList(event["server"])
     
     def channel(self, event):
-        log = self.make_log(event)
-        self.do_log(event["channel"].log, log, event["server"])
+        event["channel"].log.add(event["sender"].nickname, event["text"],
+            event["action"], "sent" in event)
