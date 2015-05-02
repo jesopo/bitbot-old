@@ -127,12 +127,16 @@ class ConfigManager(object):
     def open_config(self, filename):
         filename_conf = "%s.conf" % filename
         filename_temp = "%s.temp" % filename
-        #if os.path.isfile(filename_temp):
-        #    os.rename(filename_temp, filename_conf)
-        # the above was bad, need to rethink this.
+        if os.path.isfile(filename_temp):
+            with open(filename_temp) as file_object:
+                if file_object.read().endswith("\04"):
+                    os.rename(filename_temp, filename_conf)
         if os.path.isfile(filename_conf):
             with open(filename_conf) as file_object:
-                return yaml.load(file_object.read())
+                content = file_object.read()
+                if content.endswith("\04"):
+                    content = content[:-1]
+                return yaml.load(content)
         return {}
     
     def commit(self, config, filename):
@@ -141,6 +145,9 @@ class ConfigManager(object):
         with open(filename_temp, "w") as file_object:
             file_object.write(yaml.dump(config.unmake(),
                 default_flow_style=False))
+            # \04 means "END OF TRANSMISSION", denoting all data has been
+            # written to file
+            file_object.write("\04")
             file_object.flush()
             os.fsync(file_object.fileno())
         os.rename(filename_temp, filename_conf)
