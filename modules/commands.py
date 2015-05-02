@@ -53,16 +53,16 @@ class Module(object):
     def handle(self, function, options, event):
         if len(event["args_split"]) >= options.get("min_args", 0):
             # other checks maybe
-            returned, *returned_extra = function(event)
+            returned = function(event)
             if returned:
                 module_name = function.__self__._name
                 text = returned
-                if len(returned_extra) > 1:
-                    text = text + "".join(returned_extra)
-                elif len(returned_extra) == 1:
-                    module_name = returned
-                    text = returned_extra[0]
-                returned = returned.replace("\r", "").replace("\n", " ").replace(
+                
+                if not type(returned) in [str, bytes] and len(returned) > 1:
+                    module_name = returned[0]
+                    text = returned[1]
+                
+                text = text.replace("\r", "").replace("\n", " ").replace(
                     "  ", " ")
                 self.send_response(text, event["channel"], module_name)
         else:
