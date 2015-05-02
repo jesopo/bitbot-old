@@ -13,10 +13,18 @@ class ConfigObject(object):
         self.underlying.__init__(self)
         self.make(config)
         self.overwrites()
+        self.should_commit = True
         self.initialised = True
     
+    def __enter__(self):
+        self.should_commit = False
+        return self
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.should_commit = True
+        self.commit()
+    
     def commit(self, config=None, filename=None):
-        if self.initialised:
+        if self.initialised and self.should_commit:
             self.parent.commit(self, self.filename)
     
     def overwrites(self):
