@@ -13,6 +13,9 @@ class Event(object):
         self._stop_propagation = False
         self._stop_escalation = False
     
+    def kwargs(self):
+        return self._kwargs
+    
     def stop_propagation(self):
         self._stop_propagation = True
     def stopped_propagation(self):
@@ -139,7 +142,7 @@ class ModuleManager(object):
             os.mkdir(self.directory)
     
     def list_modules(self):
-        return glob.glob("%s/*.py" % self.directory)
+        return sorted(glob.glob(os.path.join(self.directory, "*.py")))
         
     def load_module(self, filename):
         name = os.path.basename(filename)[:-3]
@@ -160,6 +163,8 @@ class ModuleManager(object):
         module_object = module.Module(self.bot)
         if not hasattr(module_object, "_name"):
             module_object._name = name[0].upper() + name[1:]
+        # I feel kinda bad for having to truncate module names :<
+        module_object._name = module_object._name[:32]
         return module_object
     
     def load_modules(self):

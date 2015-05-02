@@ -12,6 +12,8 @@ class Module(object):
         target = event["args_split"][0].lower()
         text = " ".join(event["args_split"][1:])
         sender = event["sender"].nickname
+        if event["server"].own_nickname(target):
+            return "Not a chance"
         with event["channel"].config as config:
             if not "to" in config:
                 config["to"] = {}

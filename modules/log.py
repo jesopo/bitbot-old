@@ -15,6 +15,11 @@ class LogList(object):
         self.server = server
         self._log_list = []
     
+    def get(self, index):
+        if len(self._log_list) > index:
+            return self._log_list[index]
+        return None
+    
     def add(self, nickname, text, is_action, from_self):
         self._log_list.append(Log(nickname, text,is_action, from_self))
         if len(self._log_list) > self.server.config.get("max-log", 64):

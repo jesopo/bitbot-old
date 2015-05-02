@@ -8,13 +8,13 @@ class Module(object):
     _name = "Translate"
     def __init__(self, bot):
         bot.events.on("received").on("command").on("translate"
-            ).hook(self.translate, min_args=1)
+            ).hook(self.translate)
         bot.events.on("received").on("command").on("tr"
-            ).hook(self.translate, min_args=1)
+            ).hook(self.translate)
         bot.events.on("received").on("command").on("translatebetween"
-            ).hook(self.translate_between, min_args=2)
+            ).hook(self.translate_between, min_args=1)
         bot.events.on("received").on("command").on("trb"
-            ).hook(self.translate_between, min_args=2)
+            ).hook(self.translate_between, min_args=1)
         bot.events.on("received").on("command").on("translatelist"
             ).hook(self.translate_list)
         bot.events.on("received").on("command").on("trl"
@@ -38,8 +38,14 @@ class Module(object):
         return None, None, None
     
     def translate(self, event):
+        phrase = event["args"]
+        if not phrase:
+            phrase = event["channel"].log.get(0)
+            if not phrase:
+                return "Nothing to translate"
+            phrase = phrase.text
         source_language, target_language, translated = self.get_def(
-            event["args"], "auto", "en")
+            phrase, "auto", "en")
         if source_language and target_language and translated:
             return "(%s > %s) %s" % (source_language, target_language,
                 translated)
@@ -47,12 +53,18 @@ class Module(object):
             return "Unable to translate"
     
     def translate_between(self, event):
+        phrase = " ".join(event["args_split"][1:])
+        if not phrase:
+            phrase = event["channel"].log.get(0)
+            if not phrase:
+                return "Nothing to translate"
+            phrase = phrase.text
         match = re.search(REGEX_TRANSLATE_BETWEEN, event["args_split"][0])
         if match and (match.group(1) or match.group(2)):
             source_language = match.group(1) or "auto"
             target_language = match.group(2) or "en"
             source_language, target_language, translated = self.get_def(
-                " ".join(event["args_split"][1:]), source_language,
+                phrase, source_language,
                 target_language)
             if source_language and target_language and translated:
                 return "(%s > %s) %s" % (source_language, target_language,
@@ -60,7 +72,8 @@ class Module(object):
             else:
                 return "Unable to translate"
         else:
-            return "Please provide either a source language or target language as first argument; sl:tr, sl: or :tr."
+            return "Please provide either a source language or target" \
+                "language as first argument; sl:tr, sl: or :tr."
     
     def translate_list(self, event):
         return "https://cloud.google.com/translate/v2/using_rest#language-params"

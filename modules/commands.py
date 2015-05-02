@@ -15,9 +15,12 @@ class Module(object):
         bot.events.on("new").on("channel").hook(self.new_channel)
         
         bot.events.on("received").on("command").on("more").hook(self.more)
+        bot.events.on("received").on("command").on("pipelast").hook(
+            self.pipe_last, min_args=1)
     
     def new_channel(self, event):
         event["channel"].command_more = None
+        event["channel"].command_last = None
     
     def set_callback(self, child):
         child.set_callback_handler(self.handle)
@@ -26,13 +29,15 @@ class Module(object):
         self.set_callback(event["child"])
     
     def send_response(self, text, channel, module_name):
-        text = "[%s] %s" % (module_name, text)
-        text_truncated = Utils.overflow_truncate(text)
-        if not text == text_truncated:
-            channel.command_more = [text.replace(text_truncated, "", 1
-                ).lstrip(), module_name]
-            text = "%s (more)" % text_truncated
-        channel.send_message(text)
+        command_text = "[%s] %s" % (module_name, text)
+        command_text_truncated = Utils.overflow_truncate(command_text)
+        if not command_text == command_text_truncated:
+            channel.command_more = [command_text.replace(
+                command_text_truncated, "", 1), module_name]
+            command_text = "%s (more)" % command_text_truncated
+        channel.command_last = command_text.replace("[%s] " % module_name,
+            "", 1)
+        channel.send_message(command_text)
     
     def on_message(self, event):
         command_prefix = event["channel"].config.get("command-prefix", event[
@@ -41,6 +46,7 @@ class Module(object):
         if not event["action"] and event["text"].startswith(command_prefix):
             command = event["text_split"][0].replace(command_prefix, "", 1
                 ).lower()
+            event.stop_propagation()
             args_split = event["text_split"][1:]
             args = " ".join(args_split)
             
@@ -74,3 +80,13 @@ class Module(object):
             text, module_name = event["channel"].command_more
             event["channel"].command_more = None
             self.send_response("(continued) %s" % text, event["channel"], module_name)
+    
+    def pipe_last(self, event):
+        if event["channel"].command_last:
+            command = event["args_split"][0].lower()
+            kwargs = event.kwargs()
+            kwargs["command"] = command
+            kwargs["args"] = event["channel"].command_last
+            kwargs["args_split"] = kwargs["args"].split(" ")
+            self.bot.events.on("received").on("command").on(command).call(
+                **kwargs)

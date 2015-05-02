@@ -1,7 +1,7 @@
 import re, traceback, urllib.parse
 import Utils
 
-REGEX_TITLE = re.compile("<title>(.*?)</title>", re.I)
+REGEX_TITLE = re.compile("<title>(.*?)</title>", re.I|re.S)
 REGEX_URL = re.compile("https?://\S+", re.I)
 # this horrific regex is to find soft-redirects
 # e.g <meta http-equiv="refesh" content="0;url=/path/here">
@@ -40,7 +40,8 @@ class Module(object):
         url = None
         if event["args_split"]:
             url = event["args_split"][0]
-            if not url.startswith("http://"):
+            if not url.startswith("https://") and not url.startswith(
+                    "http://"):
                 url = "http://%s" % url
         else:
             url = self.find_last_url(event["channel"])
@@ -50,6 +51,6 @@ class Module(object):
             if title:
                 return title
             else:
-                return "could not find title."
+                return "Could not find title."
         else:
-            return "no URL provided."
+            return "No URL provided."

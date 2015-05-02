@@ -115,9 +115,16 @@ class IRCServer(object):
         return self.channels.get(channel_name.lower(), None)
     def add_channel(self, channel_name):
         if not self.has_channel(channel_name):
+            channel_name_lower = channel_name.lower()
+            if not "channels" in self.config:
+                self.config["channels"] = {}
+            if not channel_name_lower in self.config["channels"
+                    ] or self.config["channels"][channel_name_lower] == None:
+                self.config["channels"][channel_name_lower] = {}
+            
             self.channels[channel_name.lower()] = IRCChannel.IRCChannel(
-                channel_name, self, self.config.get("channels", {}).get(
-                channel_name, None) or {})
+                channel_name, self, self.config["channels"][channel_name.lower(
+                )])
             self.bot.events.on("new").on("channel").call(
                 channel=self.get_channel(channel_name), server=self)
     def remove_channel(self, channel):

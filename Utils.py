@@ -2,7 +2,7 @@ import html.parser, re, traceback, urllib.parse, urllib.request
 
 REGEX_HOSTMASK = re.compile(":?([^!]*)!([^@]*)@(.*)")
 REGEX_CHARSET = re.compile("charset=(\S+)", re.I)
-REGEX_MAX_LENGTH = re.compile(".{1,300}(?=\s|$)")
+REGEX_MAX_LENGTH = re.compile(".{1,300}(?:\s|$)")
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 " \
     "(KHTML, like Gecko) Chrome/40.0.2214.93 Safari/537.36"
@@ -16,10 +16,10 @@ def get_url(url, **kwargs):
     post_params = kwargs.get("post_params", None)
     data = ""
     if get_params:
-        get_params = urllib.parse.urlencode(get_params)
+        get_params = "?%s" % urllib.parse.urlencode(get_params)
     if post_params:
         post_params = urllib.parse.urlencode(post_params).encode("utf8")
-    url = "%s?%s" % (url, get_params)
+    url = "%s%s" % (url, get_params)
     request = urllib.request.Request(url, post_params)
     request.add_header("Accept-Language", "en-gb")
     request.add_header("User-Agent", USER_AGENT)
