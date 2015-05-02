@@ -3,7 +3,6 @@ import Utils
 class Module(object):
     def __init__(self, bot):
         self.bot = bot
-        self.helps = {}
         bot.events.on("received").on("command").on("_new_child").hook(
             self.new_child)
         for name, child in bot.events.on("received").on("command"
