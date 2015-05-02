@@ -64,8 +64,13 @@ class EventHook(object):
         self._hooks = []
         self._callback_handler = None
     
+    def __contains__(self, key):
+        return key.lower() in self._children
+    def __getitem__(self, key):
+        return self.get_child(key)
+    
     def get_child(self, name):
-        name = str(name)
+        name = str(name).lower()
         if not name in self._children:
             self._children[name] = EventHook(name, self)
             if not name.startswith("_"):
@@ -102,6 +107,8 @@ class EventHook(object):
     def hook(self, function, receive_children=False, **options):
         self._hooks.append([function, receive_children, options])
         return self
+    def get_hooks(self):
+        return self._hooks
     
     def call(self, original_path=None, returns=None, **kwargs):
         event = self.make_event(original_path, **kwargs)
@@ -152,7 +159,7 @@ class ModuleManager(object):
             called 'module' but it's not a class."""
         module_object = module.Module(self.bot)
         if not hasattr(module_object, "_name"):
-            module_object._name = name
+            module_object._name = name[0].upper() + name[1:]
         return module_object
     
     def load_modules(self):

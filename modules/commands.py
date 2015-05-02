@@ -3,6 +3,7 @@ import Utils
 class Module(object):
     def __init__(self, bot):
         self.bot = bot
+        self.helps = {}
         bot.events.on("received").on("command").on("_new_child").hook(
             self.new_child)
         for name, child in bot.events.on("received").on("command"
@@ -39,7 +40,8 @@ class Module(object):
             "server"].config.get("command-prefix", "!"))
         
         if not event["action"] and event["text"].startswith(command_prefix):
-            command = event["text_split"][0].replace(command_prefix, "", 1)
+            command = event["text_split"][0].replace(command_prefix, "", 1
+                ).lower()
             args_split = event["text_split"][1:]
             args = " ".join(args_split)
             
@@ -52,10 +54,18 @@ class Module(object):
     def handle(self, function, options, event):
         if len(event["args_split"]) >= options.get("min_args", 0):
             # other checks maybe
-            text = function(event)
-            if text:
-                text = text.replace("\r", "").replace("\n", " ").replace("  ", " ")
-                self.send_response(text, event["channel"], function.__self__._name)
+            returned, *returned_extra = function(event)
+            if returned:
+                module_name = function.__self__._name
+                text = returned
+                if len(returned_extra) > 1:
+                    text = text + "".join(returned_extra)
+                elif len(returned_extra) == 1:
+                    module_name = returned
+                    text = returned_extra[0]
+                returned = returned.replace("\r", "").replace("\n", " ").replace(
+                    "  ", " ")
+                self.send_response(text, event["channel"], module_name)
         else:
             self.send_response("not enough arguments.", event["channel"],
                 function.__self__._name)
