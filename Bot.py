@@ -6,12 +6,12 @@ class Bot(object):
         self.servers = set([])
         self.other_fds = set([])
         self.write_waiting = set([])
+        self.timed_callbacks = []
         self.module_manager = ModuleManager.ModuleManager(self)
         self.events = self.module_manager.events
         self.module_manager.load_modules()
         self.server_config_manager = ConfigManager.ConfigManager("servers")
         self.general_config_manager = ConfigManager.ConfigManager("settings")
-        self.timed_callbacks = []
         
         self.config = self.general_config_manager.get_config("bot")
         

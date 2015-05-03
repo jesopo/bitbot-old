@@ -7,6 +7,8 @@ class Module(object):
             self.to, min_args=2)
         bot.events.on("received").on("message").on("channel"
             ).hook(self.channel_message)
+        bot.events.on("received").on("command").hook(
+            self.channel_message)
     
     def to(self, event):
         target = event["args_split"][0].lower()
