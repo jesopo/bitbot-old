@@ -57,23 +57,27 @@ class Module(object):
                 line_split=event["line_split"])
     
     def handle(self, function, options, event):
-        if len(event["args_split"]) >= options.get("min_args", 0):
-            # other checks maybe
-            returned = function(event)
-            if returned:
-                module_name = function.__self__._name
-                text = returned
-                
-                if not type(returned) in [str, bytes] and len(returned) > 1:
-                    module_name = returned[0]
-                    text = returned[1]
-                
-                text = text.replace("\r", "").replace("\n", " ").replace(
-                    "  ", " ")
-                self.send_response(text, event["channel"], module_name)
-        else:
+        if len(event["args_split"]) < options.get("min_args", 0):
             self.send_response("not enough arguments.", event["channel"],
                 function.__self__._name)
+            return
+        for _, returned in self.bot.events.on("event").on("command").call(
+                function=function, options=options, event=event).get_all():
+            if returned == False:
+                return
+        # other checks maybe
+        returned = function(event)
+        if returned:
+            module_name = function.__self__._name
+            text = returned
+            
+            if not type(returned) in [str, bytes] and len(returned) > 1:
+                module_name = returned[0]
+                text = returned[1]
+            
+            text = text.replace("\r", "").replace("\n", " ").replace(
+                "  ", " ")
+            self.send_response(text, event["channel"], module_name)
     
     def more(self, event):
         if event["channel"].command_more:

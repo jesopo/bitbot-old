@@ -49,6 +49,9 @@ class Module(object):
             elif timestamp >= TIME_DAY:
                 since = timestamp/TIME_DAY
                 unit = "day"
+            elif timestamp >= TIME_HOUR:
+                since = timestamp/TIME_HOUR
+                unit = "hour"
             elif timestamp >= TIME_MINUTE:
                 since = timestamp/TIME_MINUTE
                 unit = "minute"
