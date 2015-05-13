@@ -1,4 +1,4 @@
-import html.parser, re, traceback, urllib.parse, urllib.request
+import glob, html.parser, os, re, traceback, urllib.parse, urllib.request
 
 REGEX_HOSTMASK = re.compile(":?([^!]*)!([^@]*)@(.*)")
 REGEX_CHARSET = re.compile("charset=(\S+)", re.I)
@@ -6,6 +6,8 @@ REGEX_MAX_LENGTH = re.compile(".{1,300}(?:\s|$)")
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 " \
     "(KHTML, like Gecko) Chrome/40.0.2214.93 Safari/537.36"
+
+current_directory = os.path.dirname(os.path.abspath(__file__))
 
 h = html.parser.HTMLParser()
 
@@ -62,3 +64,6 @@ def get_index(words, i):
 
 def overflow_truncate(text):
     return re.match(REGEX_MAX_LENGTH, text).group(0)
+
+def certificates():
+    return glob.glob(os.path.join(current_directory, "certs", "*.crt"))

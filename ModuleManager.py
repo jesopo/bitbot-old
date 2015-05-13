@@ -1,6 +1,5 @@
 import glob, imp, inspect, os
-
-current_directory = os.path.dirname(os.path.abspath(__file__))
+import Utils
 
 class Event(object):
     def __init__(self, path, original_path=None, **kwargs):
@@ -135,7 +134,7 @@ class EventHook(object):
 class ModuleManager(object):
     def __init__(self, bot, directory="modules"):
         self.bot = bot
-        self.directory = os.path.join(current_directory, directory)
+        self.directory = os.path.join(Utils.current_directory, directory)
         self.modules = []
         self.events = EventHook()
         if not os.path.isdir(self.directory):

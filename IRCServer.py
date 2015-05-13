@@ -1,4 +1,4 @@
-import re, socket, ssl
+import hashlib, os, re, socket, ssl, sys
 import IRCChannel, IRCChannelMode, IRCUser, Utils
 
 REGEX_MODE_SYMBOLS = re.compile("PREFIX=\((\w+)\)(\W+?)(?=\s|$)", re.I)
@@ -21,10 +21,18 @@ class IRCServer(object):
         self.ssl = config.get("ssl")
         # ssl cipher to use
         self.ssl_ciphers = config.get("ssl-ciphers")
+        # hashes of allowed certificates
+        self.ssl_allowed_certificates = config.get("allowed-certs", [])
+        # whether or not to verify server-supplied certificates. this will be
+        # set to False after the first failed ssl wrap attempt
+        self.ssl_verify = True
         # the address to bind onto
         self.bindhost = config.get("bindhost")
         # should this be an IPv4 connection
         self.ipv4 = config.get("ipv4")
+        
+        self.str_host = self.server_hostname
+        self.str_host += ":%s%d" % ("+" if self.ssl else "", self.server_port)
         
         # nickname, username and realname. before connecting these should be set
         # to what they're desired to be. after connecting, these will be set to
@@ -132,6 +140,33 @@ class IRCServer(object):
             channel.users[user].part_channel(channel)
         del self.channels[channel.name.lower()]
     
+    def ssl_wrap(self, new_socket):
+        context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+        context.options |= ssl.OP_NO_SSLv2
+        context.options |= ssl.OP_NO_SSLv3
+        if self.ssl_verify:
+            context.verify_mode = ssl.CERT_REQUIRED
+            context.load_default_certs()
+            context.load_verify_locations(cafile=
+                self.bot.config.get("ca-certs",
+                "/etc/ssl/certs/ca-certificates.crt"))
+            for cert in Utils.certificates():
+                context.load_verify_locations(cafile=cert)
+        if self.ssl_ciphers:
+            context.set_ciphers(self.ssl_ciphers)
+        fileno = new_socket.fileno()
+        # can throw exception
+        wrapped_socket = context.wrap_socket(new_socket)
+        if not self.ssl_verify:
+            cert_hash = hashlib.sha256(wrapped_socket.getpeercert(True)).hexdigest()
+            if not cert_hash in self.ssl_allowed_certificates:
+                print("server '%s' presented an invalid certificate." % self.str_host)
+                print("To allow this certificate, please add the following to the " \
+                    "allowed-certs list in the server's config file." \
+                    "\n\n%s" % cert_hash)
+                return False
+        return wrapped_socket
+    
     def connect(self):
         assert self.server_hostname
         assert self.server_port
@@ -148,20 +183,19 @@ class IRCServer(object):
             self._socket.connect((self.server_hostname, self.server_port))
         except Exception as e:
             raise e
-        try:
-            if self.ssl:
-                context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-                context.options |= ssl.OP_NO_SSLv2
-                context.options |= ssl.OP_NO_SSLv3
-                if self.ssl_ciphers:
-                    context.set_ciphers(self.ssl_ciphers)
-                self._socket = context.wrap_socket(self._socket)
-        except Exception as e:
-            raise e
-        self.send_pass(self.password)
-        self.send_user(self.username, self.realname)
-        self.send_nick(self.nickname)
-        self.connected = True
+        if self.ssl:
+            try:
+                self._socket = self.ssl_wrap(self._socket)
+            except ssl.SSLError:
+                self.ssl_verify = False
+                return self.connect()
+        if self._socket:
+            self.send_pass(self.password)
+            self.send_user(self.username, self.realname)
+            self.send_nick(self.nickname)
+            self.connected = True
+            return True
+        return False
     
     def disconnect(self):
         self.send_quit()

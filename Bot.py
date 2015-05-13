@@ -1,4 +1,4 @@
-import select
+import select, sys, traceback
 import ConfigManager, IRCServer, ModuleManager, TimedCallback
 
 class Bot(object):
@@ -24,7 +24,14 @@ class Bot(object):
             self.events.on("new").on("server").call(server=server)
             self.servers.add(server)
         for server in self.servers:
-            server.connect()
+            try:
+                server.connect()
+            except:
+                print("Failed to connect to %s:" % server.str_host)
+                traceback.print_exc()
+                sys.exit()
+            if not server.connected:
+                sys.exit()
     
     def get_soonest_timer(self):
         soonest = None
