@@ -6,7 +6,6 @@ class Module(object):
             self.on_connect)
     
     def on_connect(self, event):
-        print(event["server"].config.get("perform", []))
         for command in event["server"].config.get("perform", []):
             new_command = []
             for part in command.split("%%"):
@@ -14,4 +13,3 @@ class Module(object):
                     "server"].nickname))
             new_command = "%".join(new_command)
             event["server"].queue_line(new_command)
-                

@@ -1,4 +1,4 @@
-import hashlib, os, re, socket, ssl, sys
+import hashlib, os, re, socket, ssl, sys, time
 import IRCChannel, IRCChannelMode, IRCUser, Utils
 
 REGEX_MODE_SYMBOLS = re.compile("PREFIX=\((\w+)\)(\W+?)(?=\s|$)", re.I)
@@ -11,6 +11,8 @@ class IRCServer(object):
         self._send_queue = []
         # underlying socket
         self._socket = socket.socket()
+        # timestamp of when the last chunk of data was read from the server
+        self.data_timestamp = 0
         # hostname to connect to
         self.server_hostname = config.get("hostname")
         # port to connect to
@@ -59,6 +61,8 @@ class IRCServer(object):
         # to the next read
         self.read_cutoff = None
         
+        # set up the timed callback to make sure the server's still connected
+        self.bot.add_timer(self.check_connection, 30)
         # boolean denoting whether the server object has realised that it's been
         # disconnected or not yet connected or happily dandily connected
         self.connected = False
@@ -116,6 +120,15 @@ class IRCServer(object):
         for user in list(self.users.values()):
             if len(user.channels) == 0:
                 user.destroy()
+    
+    def check_connection(self, timer):
+        if self.data_timestamp > 0:
+            time_since = time.time()-self.data_timestamp
+            ping_interval = self.config.get("ping-interval", 30)
+            if time_since >= ping_interval*3:
+                self.disconnect()
+            elif time_since > ping_interval:
+                self.send_ping()
     
     def has_channel(self, channel_name):
         return channel_name.lower() in self.channels
@@ -188,26 +201,29 @@ class IRCServer(object):
                 self._socket = self.ssl_wrap(self._socket)
             except ssl.SSLError:
                 self.ssl_verify = False
-                return self.connect()
+                if self.connect():
+                    self.connected = True
+                return
         if self._socket:
             self.send_pass(self.password)
             self.send_user(self.username, self.realname)
             self.send_nick(self.nickname)
             self.connected = True
-            return True
-        return False
     
     def disconnect(self):
         self.send_quit()
         self.connected = False
-        self.socket.shutdown(socket.SHUT_RDWR)
-        self.socket.close()
+        self._socket.shutdown(socket.SHUT_RDWR)
+        self._socket.close()
     
     def read_lines(self):
+        if not self.connected:
+            return None
         lines = []
         try:
             data = self._socket.recv(4096)
             assert len(data)
+            self.data_timestamp = time.time()
         except:
             return None
         if self.read_cutoff:
@@ -218,7 +234,8 @@ class IRCServer(object):
             cutoff = True
         for line in data.split(b"\n"):
             line = line.strip(b"\r")
-            lines.append(line)
+            if line:
+                lines.append(line)
         if cutoff:
             self.read_cutoff = lines.pop(len(lines)-1)
         
@@ -266,9 +283,9 @@ class IRCServer(object):
     def send_join(self, channel_name):
         if channel_name:
             self.queue_line("JOIN %s" % channel_name)
-    def send_ping(self, nonce):
-        if nonce:
-            self.queue_line("PING :%s" % nonce)
+    def send_ping(self, nonce=None):
+        nonce = nonce or self.config.get("ping-data", "hello")
+        self.queue_line("PING :%s" % nonce)
     def send_pong(self, nonce):
         if nonce:
             self.queue_line("PONG :%s" % nonce)

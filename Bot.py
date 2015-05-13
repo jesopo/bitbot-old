@@ -57,7 +57,7 @@ class Bot(object):
     def reconnect(self, server):
         self.servers.remove(server)
         server.disconnect()
-        new_server = IRCServer.IRCServer(server.config, self.events)
+        new_server = IRCServer.IRCServer(server.config, self)
         self.events.on("new").on("server").call(server, new_server)
         self.servers.add(new_server)
     
