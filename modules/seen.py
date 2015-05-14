@@ -1,9 +1,5 @@
 import time
-
-TIME_MINUTE = 60
-TIME_HOUR = TIME_MINUTE*60
-TIME_DAY = TIME_HOUR*24
-TIME_WEEK = TIME_DAY*7
+import Utils
 
 class Module(object):
     def __init__(self, bot):
@@ -40,26 +36,7 @@ class Module(object):
         timestamp = timestamp or event["channel"].config.get("seen",
             {}).get(nickname_lower)
         if timestamp:
-            timestamp = time.time()-timestamp
-            since = None
-            unit = None
-            if timestamp >= TIME_WEEK:
-                since = timestamp/TIME_WEEK
-                unit = "week"
-            elif timestamp >= TIME_DAY:
-                since = timestamp/TIME_DAY
-                unit = "day"
-            elif timestamp >= TIME_HOUR:
-                since = timestamp/TIME_HOUR
-                unit = "hour"
-            elif timestamp >= TIME_MINUTE:
-                since = timestamp/TIME_MINUTE
-                unit = "minute"
-            else:
-                since = timestamp
-                unit = "second"
-            since = int(since)
-            if since > 1:
-                unit = "%ss" % unit # pluralise the unit
+            seconds_since = time.time()-timestamp
+            since, unit = Utils.time_unit(seconds_since)
             return "%s was last seen %d %s ago." % (nickname, since, unit)
         return "I've never seen that user."

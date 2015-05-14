@@ -1,5 +1,6 @@
-import datetime, re
+import datetime, re, time
 from twitter import OAuth, Twitter
+import Utils
 
 REGEX_TWITTER_URL = re.compile("https?://twitter.com/[^/]+/status/(\d+)")
 
@@ -24,8 +25,10 @@ class Module(object):
             return match.group(1)
     
     def make_timestamp(self, s):
-        timestamp = datetime.datetime.strptime(s, "%a %b %d %H:%M:%S +0000 %Y")
-        return timestamp.strftime("%H:%M:%S %d/%m/%Y")
+        seconds_since = time.time()-datetime.datetime.strptime(s,
+            "%a %b %d %H:%M:%S %z %Y").timestamp()
+        since, unit = Utils.time_unit(seconds_since)
+        return "%s %s ago" % (since, unit)
     
     def twitter(self, event):
         oauth_token = self.bot.config.get("twitter-oauth-token")
@@ -50,10 +53,10 @@ class Module(object):
                         original_screen_name = "@%s" %tweets[0]["retweeted_status"
                             ]["user"]["screen_name"]
                         original_text = tweets[0]["retweeted_status"]["text"]
-                        return "(%s retweeted %s at %s) %s" % (screen_name,
+                        return "(%s retweeted %s, %s) %s" % (screen_name,
                             original_screen_name, self.make_timestamp(tweets[0][
                             "retweeted_status"]["created_at"]), original_text)
-                    return "(%s at %s) %s" % (screen_name, self.make_timestamp(
+                    return "(%s, %s) %s" % (screen_name, self.make_timestamp(
                         tweets[0]["created_at"]), tweets[0]["text"])
             tweet_id = None
             if arg.isdigit():
@@ -66,7 +69,7 @@ class Module(object):
             if tweet_id:
                 tweet = twitter.statuses.show(id=tweet_id)
                 if tweet:
-                    return "(@%s at %s) %s" % (tweet["user"]["screen_name"],
+                    return "(@%s, %s) %s" % (tweet["user"]["screen_name"],
                         self.make_timestamp(tweet["created_at"]), tweet["text"])
                 return "failed to get tweet."
             else:

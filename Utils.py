@@ -7,6 +7,11 @@ REGEX_MAX_LENGTH = re.compile(".{1,300}(?:\s|$)")
 USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 " \
     "(KHTML, like Gecko) Chrome/40.0.2214.93 Safari/537.36"
 
+TIME_MINUTE = 60
+TIME_HOUR = TIME_MINUTE*60
+TIME_DAY = TIME_HOUR*24
+TIME_WEEK = TIME_DAY*7
+
 current_directory = os.path.dirname(os.path.abspath(__file__))
 
 h = html.parser.HTMLParser()
@@ -67,3 +72,26 @@ def overflow_truncate(text):
 
 def certificates():
     return glob.glob(os.path.join(current_directory, "certs", "*.crt"))
+
+def time_unit(seconds):
+    since = None
+    unit = None
+    if seconds >= TIME_WEEK:
+        since = seconds/TIME_WEEK
+        unit = "week"
+    elif seconds >= TIME_DAY:
+        since = seconds/TIME_DAY
+        unit = "day"
+    elif seconds >= TIME_HOUR:
+        since = seconds/TIME_HOUR
+        unit = "hour"
+    elif seconds >= TIME_MINUTE:
+        since = seconds/TIME_MINUTE
+        unit = "minute"
+    else:
+        since = seconds
+        unit = "second"
+    since = int(since)
+    if since > 1:
+        unit = "%ss" % unit # pluralise the unit
+    return [since, unit]
