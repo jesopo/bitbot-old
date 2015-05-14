@@ -50,9 +50,12 @@ class Bot(object):
         timer = TimedCallback.Timer(function, delay, *args, **kwargs)
         self.timed_callbacks.append(timer)
     def call_timers(self):
-        for timer in self.timed_callbacks:
+        for timer in self.timed_callbacks[:]:
             if timer.due():
                 timer.call()
+            if timer.is_destroyed():
+                self.timed_callbacks.remove(timer)
+            
     
     def reconnect(self, server):
         self.servers.remove(server)

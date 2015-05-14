@@ -122,6 +122,8 @@ class IRCServer(object):
                 user.destroy()
     
     def check_connection(self, timer):
+        if not self.connected:
+            timer.destroy()
         if self.data_timestamp > 0:
             time_since = time.time()-self.data_timestamp
             ping_interval = self.config.get("ping-interval", 30)
