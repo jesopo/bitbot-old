@@ -75,7 +75,7 @@ class Bot(object):
                         server.fileno()).call(readable=server)
                 if server in self.servers:
                     lines = server.read_lines()
-                    if lines:
+                    if not lines == None:
                         for line in lines:
                             if line:
                                 if self.config.get("verbose", True):

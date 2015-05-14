@@ -1,7 +1,21 @@
-import hashlib, os, re, socket, ssl, sys, time
+import hashlib, os, re, socket, ssl, sys, time, traceback
 import IRCChannel, IRCChannelMode, IRCUser, Utils
 
 REGEX_MODE_SYMBOLS = re.compile("PREFIX=\((\w+)\)(\W+?)(?=\s|$)", re.I)
+
+class Line(object):
+    def __init__(self, line):
+        self.print_line = line
+        self.line = ("%s\r\n" % line).encode("utf8")
+    
+    def sent(self, count):
+        self.line = self.line[count:]
+    
+    def all_sent(self):
+        return self.to_send() == 0
+    
+    def to_send(self):
+        return len(self.line)
 
 class IRCServer(object):
     def __init__(self, config, bot):
@@ -211,6 +225,7 @@ class IRCServer(object):
             self.send_user(self.username, self.realname)
             self.send_nick(self.nickname)
             self.connected = True
+        self._socket.setblocking(False)
     
     def disconnect(self):
         self.send_quit()
@@ -226,7 +241,9 @@ class IRCServer(object):
             data = self._socket.recv(4096)
             assert len(data)
             self.data_timestamp = time.time()
-        except:
+        except (BlockingIOError, ssl.SSLWantReadError) as e:
+            return []
+        except Exception as e:
             return None
         if self.read_cutoff:
             data = self.read_cutoff + data
@@ -256,17 +273,17 @@ class IRCServer(object):
     def send_line(self):
         try:
             line = self._send_queue.pop(0)
-            if self.bot.config.get("verbose", True):
-                print(line.rstrip("\r\n"))
-            if type(line) == str:
-                line = line.encode("utf8")
-            sent = self._socket.send(line)
-            if sent < len(line):
-                self._send_queue.insert(0, line[sent:])
+            sent = self._socket.send(line.line)
+            line.sent(sent)
+            if not line.all_sent():
+                self._send_queue.insert(0, line)
+            else:
+                print(line.print_line)
         except Exception as e:
             raise e
     def queue_line(self, line):
-        self._send_queue.append("%s\r\n" % line)
+        line = Line(line)
+        self._send_queue.append(line)
     def send_pass(self, password):
         if password:
             self.queue_line("PASS %s" % password)
