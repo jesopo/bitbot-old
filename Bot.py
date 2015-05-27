@@ -51,10 +51,10 @@ class Bot(object):
         self.timed_callbacks.append(timer)
     def call_timers(self):
         for timer in self.timed_callbacks[:]:
-            if timer.due():
-                timer.call()
             if timer.is_destroyed():
                 self.timed_callbacks.remove(timer)
+            elif timer.due():
+                timer.call()
             
     
     def reconnect(self, server):
@@ -66,6 +66,10 @@ class Bot(object):
     
     def listen(self):
         while len(self.servers):
+            for server in self.servers:
+                if not server.connected:
+                    self.servers.discard(server)
+                    self.write_waiting.discard(server)
             readable, writable, errors = select.select(self.servers|
                 self.other_fds, self.write_waiting, [], self.get_timer_delay())
             self.call_timers()

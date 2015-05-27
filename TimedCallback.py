@@ -18,7 +18,7 @@ class Timer(object):
     def time_until(self):
         if not self.last_called:
             return delay
-        to_wait = time.time()-self.due_at()
+        to_wait = self.due_at()-time.time()
         if to_wait < 0:
             return 0
         return to_wait

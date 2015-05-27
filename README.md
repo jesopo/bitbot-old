@@ -5,6 +5,7 @@ Modular Python IRC Bot (Python3!)
 * [BeautifulSoup4](https://pypi.python.org/pypi/beautifulsoup4/4.3.2)
 * [twitter](https://pypi.python.org/pypi/twitter)
 * [PyYAML](https://pypi.python.org/pypi/PyYAML)
+* [scrypt](https://pypi.python.org/pypi/scrypt)
 
 All of the above can be installed using python3-pip;
-> pip3 install beautifulsoup4 twitter pyyaml
+> pip3 install beautifulsoup4 twitter pyyaml scrypt

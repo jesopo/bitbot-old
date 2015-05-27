@@ -45,11 +45,11 @@ class EventReturn(object):
             return self.returns[index]
         return None, None
     def get_all(self):
-        for returner, returned in self.returns:
-            yield returner, returned
+        for returned in self.returns:
+            yield returned
     
-    def add(self, returner, returned):
-        self.returns.append([returner, returned])
+    def add(self, returned):
+        self.returns.append(returned)
 
 class EventHook(object):
     def __init__(self, name=None, parent=None):
@@ -125,7 +125,7 @@ class EventHook(object):
             else:
                 returned = self._callback_handler(function, options, event)
             if not returned == None:
-                returns.add(function.im_class, returned)
+                returns.add(returned)
         original_path = original_path or self.path
         if self.parent and not event.stopped_escalation():
             self.parent.call(original_path, **kwargs)

@@ -17,7 +17,8 @@ class LogList(object):
     
     def get(self, index):
         if len(self._log_list) > index:
-            return self._log_list[index]
+            reversed_index = (len(self._log_list)-1)-index
+            return self._log_list[reversed_index]
         return None
     
     def add(self, nickname, text, is_action, from_self):

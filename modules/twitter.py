@@ -53,9 +53,13 @@ class Module(object):
                         original_screen_name = "@%s" %tweets[0]["retweeted_status"
                             ]["user"]["screen_name"]
                         original_text = tweets[0]["retweeted_status"]["text"]
-                        return "(%s retweeted %s, %s) %s" % (screen_name,
-                            original_screen_name, self.make_timestamp(tweets[0][
-                            "retweeted_status"]["created_at"]), original_text)
+                        retweet_timestamp = self.make_timestamp(tweets[0]["created_at"])
+                        original_timestamp = self.make_timestamp(tweets[0][
+                            "retweeted_status"]["created_at"])
+                        
+                        return "(%s (%s) retweeted %s (%s)) %s" % (screen_name,
+                            retweet_timestamp, original_screen_name, original_timestamp,
+                            original_text)
                     return "(%s, %s) %s" % (screen_name, self.make_timestamp(
                         tweets[0]["created_at"]), tweets[0]["text"])
             tweet_id = None
