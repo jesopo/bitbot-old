@@ -1,4 +1,4 @@
-import hashlib, os, re, socket, ssl, sys, time, traceback
+import hashlib, os, re, socket, ssl, sys, time, traceback, uuid
 import IRCChannel, IRCChannelMode, IRCUser, Utils
 
 REGEX_MODE_SYMBOLS = re.compile("PREFIX=\((\w+)\)(\W+?)(?=\s|$)", re.I)
@@ -67,6 +67,10 @@ class IRCServer(object):
         # list of users we can see (that are in channel's we're in.)
         self.users = {}
         self.nickname_to_id = {}
+        # new users that have been caused from a line being processed but have
+        # not yet been checked by the post-process check to make sure they're
+        # in at least one channel. (set of UUIDs)
+        self.new_users = set([])
         
         # all the channel mode symbols to actual modes
         self.channel_mode_symbols = {}
@@ -77,6 +81,12 @@ class IRCServer(object):
         
         # set up the timed callback to make sure the server's still connected
         self.bot.add_timer(self.check_connection, 30)
+        
+        # event triggered when a user object is destroyed
+        #self.bot.events.on("destroyed").on("user").hook(self.user_destroyed)
+        # event triggered when a channel object is destroyed
+        self.bot.events.on("destroyed").on("channel").hook(self.channel_destroyed)
+        
         # boolean denoting whether the server object has realised that it's been
         # disconnected or not yet connected or happily dandily connected
         self.connected = False
@@ -108,7 +118,7 @@ class IRCServer(object):
                 # maybe add an event call here? not a clue what to call the 
                 # sub event though.
                 pass
-        self.check_users()
+        self.check_new_users()
         return line
     
     def has_user(self, nickname):
@@ -120,9 +130,14 @@ class IRCServer(object):
                 None), None)
     def add_user(self, nickname):
         if not self.has_user(nickname):
-            IRCUser.IRCUser(nickname, self)
+            id = None
+            while not id or id in self.users:
+                id = uuid.uuid1().hex
+            user = IRCUser.IRCUser(nickname, id, self)
+            self.users[id] = user
+            self.new_users.add(id)
             self.bot.events.on("new").on("user").call(
-                user=self.get_user_by_nickname(nickname), server=self)
+                user=user, server=self)
     def remove_user(self, nickname):
         # todo: remove this functionality being handled by the IRCUser object,
         # I mean, removing it's self from the server's list and stuff. it's weird.
@@ -130,10 +145,24 @@ class IRCServer(object):
         if user:
             user.destroy()
     
-    def check_users(self):
-        for user in list(self.users.values()):
+    def check_new_users(self):
+        for id in list(self.new_users):
+            user = self.users[id]
             if len(user.channels) == 0:
                 user.destroy()
+            self.new_users.discard(user.id)
+    
+    def user_destroyed(self, event):
+        user = event["user"]
+        if user.server == self:
+            self.users.pop(user.id, None)
+            self.nickname_to_id.pop(user.nickname_lower, None)
+            self.new_users.discard(user.id)
+    
+    def channel_destroyed(self, event):
+        channel = event["channel"]
+        if channel.server == self:
+            self.channels.pop(channel.name_lower, None)
     
     def check_connection(self, timer):
         if not self.connected:
@@ -166,7 +195,7 @@ class IRCServer(object):
                 channel=self.get_channel(channel_name), server=self)
     def remove_channel(self, channel):
         for user in channel.users:
-            channel.users[user].part_channel(channel)
+            channel.users[user].remove_channel(channel)
         del self.channels[channel.name.lower()]
     
     def ssl_wrap(self, new_socket):
@@ -370,7 +399,7 @@ class IRCServer(object):
                 self.add_user(nickname)
             user = self.get_user_by_nickname(nickname)
             channel = self.get_channel(channel_name)
-            user.join_channel(channel)
+            user.add_channel(channel)
             self.bot.events.on("received").on("join").call(line=line,
                 line_split=line_split, server=self, channel=channel,
                 user=user)
@@ -381,7 +410,7 @@ class IRCServer(object):
         if self.own_nickname(nickname):
             self.remove_channel(channel)
         else:
-            self.get_user_by_nickname(nickname).part_channel(channel)
+            self.get_user_by_nickname(nickname).remove_channel(channel)
     def handle_QUIT(self, line, line_split):
         nickname, username, hostname = Utils.hostmask_split(line_split[0])
         user = self.get_user_by_nickname(nickname)
@@ -475,7 +504,7 @@ class IRCServer(object):
                 user.hostname = hostname
             if realname:
                 user.realname = realname
-            user.join_channel(channel)
+            user.add_channel(channel)
     def handle_PING_(self, line, line_split):
         nonce = Utils.arbitrary(line_split[1:])
         self.send_pong(nonce)
@@ -504,4 +533,4 @@ class IRCServer(object):
                     nickname = nickname[1:]
             if not self.own_nickname(nickname):
                 self.add_user(nickname)
-                self.get_user_by_nickname(nickname).join_channel(channel)
+                self.get_user_by_nickname(nickname).add_channel(channel)

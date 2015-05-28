@@ -3,12 +3,14 @@ import IRCChannelMode
 class IRCChannel(object):
     def __init__(self, name, server, config):
         self.name = name
+        self.name_lower = name.lower()
         self.server = server
         self.config = config
         self.users = {}
         self.modes = {}
         self.user_modes = {}
         self.log = []
+        self._destroyed = False
     
     def add_user(self, user):
         if not user.id in self.users:
@@ -52,3 +54,13 @@ class IRCChannel(object):
         self.server.send_message(self.name, message)
     def send_kick(self, user, reason=None):
         self.server.send_kick(self.name, user.nickname, reason)
+    
+    def destroy(self):
+        for id in list(self.users.keys()):
+            user = self.users[id]
+            user.remove_channel(self)
+            del self.users[id]
+        self._destroyed = True
+        self.server.bot.events.on("destroyed").on("channel").call(channel=self)
+    def is_destroyed(self):
+        return self._destroyed
