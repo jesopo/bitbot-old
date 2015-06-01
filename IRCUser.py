@@ -24,9 +24,8 @@ class IRCUser(object):
             self.destroy()
     
     def change_nickname(self, nickname):
-        self.server.nickname_to_id[nickname.lower()] = self.id
         if self.nickname:
-            del self.server.nickname_to_id[self.nickname.lower()]
+            self.server.change_nickname(self.nickname, nickname)
         self.nickname = nickname
         self.nickname_lower = nickname.lower()
     

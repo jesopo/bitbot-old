@@ -135,6 +135,7 @@ class IRCServer(object):
                 id = uuid.uuid1().hex
             user = IRCUser.IRCUser(nickname, id, self)
             self.users[id] = user
+            self.nickname_to_id[user.nickname_lower] = id
             self.new_users.add(id)
             self.bot.events.on("new").on("user").call(
                 user=user, server=self)
@@ -144,6 +145,10 @@ class IRCServer(object):
         user = self.get_user_by_nickname(nickname)
         if user:
             user.destroy()
+    def change_nickname(self, old_nickname, new_nickname):
+        user = self.nickname_to_id.pop(old_nickname.lower(), None)
+        if user:
+            self.nickname_to_id[new_nickname.lower()] = user
     
     def check_new_users(self):
         for id in list(self.new_users):

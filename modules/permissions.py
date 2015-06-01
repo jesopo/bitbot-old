@@ -1,3 +1,4 @@
+import scrypt
 import base64, os
 
 class Module(object):
