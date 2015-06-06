@@ -66,7 +66,7 @@ class Bot(object):
     
     def listen(self):
         while len(self.servers):
-            for server in self.servers:
+            for server in list(self.servers):
                 if not server.connected:
                     self.servers.discard(server)
                     self.write_waiting.discard(server)

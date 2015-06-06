@@ -151,11 +151,12 @@ class IRCServer(object):
             self.nickname_to_id[new_nickname.lower()] = user
     
     def check_new_users(self):
-        for id in list(self.new_users):
-            user = self.users[id]
-            if len(user.channels) == 0:
-                user.destroy()
-            self.new_users.discard(user.id)
+        if self.new_users:
+            for id in list(self.new_users):
+                user = self.users[id]
+                if len(user.channels) == 0:
+                    user.destroy()
+            self.new_users.clear()
     
     def user_destroyed(self, event):
         user = event["user"]

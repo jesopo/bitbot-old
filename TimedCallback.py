@@ -29,8 +29,9 @@ class Timer(object):
         return time.time() >= self.last_called+self.delay
     
     def call(self):
-        self.set_last_called()
-        self.callback(self, *self.args, **self.kwargs)
+        if not self.is_destroyed():
+            self.set_last_called()
+            self.callback(self, *self.args, **self.kwargs)
     
     def destroy(self):
         self._destroyed = True
