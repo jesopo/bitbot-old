@@ -254,13 +254,15 @@ class IRCServer(object):
                 self.ssl_verify = False
                 if self.connect():
                     self.connected = True
-                return
+                return False
         if self._socket:
             self.send_pass(self.password)
             self.send_user(self.username, self.realname)
             self.send_nick(self.nickname)
             self.connected = True
-        self._socket.setblocking(False)
+            self._socket.setblocking(False)
+            return True
+        return False
     
     def disconnect(self):
         self.send_quit()

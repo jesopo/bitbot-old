@@ -7,7 +7,8 @@ REGEX_MAX_LENGTH = re.compile(".{1,300}(?:\s|$)")
 USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 " \
     "(KHTML, like Gecko) Chrome/40.0.2214.93 Safari/537.36"
 
-TIME_MINUTE = 60
+TIME_SECOND = 1
+TIME_MINUTE = TIME_SECOND*60
 TIME_HOUR = TIME_MINUTE*60
 TIME_DAY = TIME_HOUR*24
 TIME_WEEK = TIME_DAY*7

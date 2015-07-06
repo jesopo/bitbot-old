@@ -45,8 +45,11 @@ class Module(object):
             twitter = Twitter(auth=OAuth(oauth_token, oauth_token_secret,
                 consumer_key, consumer_secret))
             if arg.startswith("@"):
-                tweets = twitter.statuses.user_timeline(screen_name=arg[1:],
-                    count=1)
+                try:
+                    tweets = twitter.statuses.user_timeline(screen_name=arg[1:],
+                        count=1)
+                except:
+                    tweets = None
                 if tweets:
                     screen_name = "@%s" % tweets[0]["user"]["screen_name"]
                     if tweets[0]["retweeted"]:
@@ -71,7 +74,10 @@ class Module(object):
                 else:
                     tweet_id = self.url_from_log(event["channel"])
             if tweet_id:
-                tweet = twitter.statuses.show(id=tweet_id)
+                try:
+                    tweet = twitter.statuses.show(id=tweet_id)
+                except:
+                    tweet = None
                 if tweet:
                     return "(@%s, %s) %s" % (tweet["user"]["screen_name"],
                         self.make_timestamp(tweet["created_at"]), tweet["text"])

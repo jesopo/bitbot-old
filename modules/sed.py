@@ -30,7 +30,11 @@ class Module(object):
             else:
                 count = 1
             
-            pattern = re.compile(sed_split[1], re_flags)
+            try:
+                pattern = re.compile(sed_split[1], re_flags)
+            except:
+                event["channel"].send_message("[Sed] Invalid regex")
+                return
             replace = sed_split[2].replace("\\/", "/")
             
             for log in event["channel"].log:
