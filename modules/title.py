@@ -24,7 +24,10 @@ class Module(object):
             if not title_match:
                 return None
             else:
-                return Utils.html_entities(title_match.group(1))
+                title = Utils.html_entities(title_match.group(1))
+                title = title.strip()
+                title = title.split("\n")[0].rstrip()
+                return title
     
     def title(self, event):
         url = None

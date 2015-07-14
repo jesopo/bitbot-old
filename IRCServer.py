@@ -18,7 +18,8 @@ class Line(object):
         return len(self.line)
 
 class IRCServer(object):
-    def __init__(self, config, bot):
+    def __init__(self, name, config, bot):
+        self.name = name
         self.config = config
         self.bot = bot
         
@@ -250,11 +251,14 @@ class IRCServer(object):
         if self.ssl:
             try:
                 self._socket = self.ssl_wrap(self._socket)
-            except ssl.SSLError:
-                self.ssl_verify = False
-                if self.connect():
-                    self.connected = True
-                return False
+            except ssl.SSLError as e:
+                if self.ssl_verify:
+                    self.ssl_verify = False
+                    if self.connect():
+                        self.connected = True
+                    return False
+                else:
+                    raise e
         if self._socket:
             self.send_pass(self.password)
             self.send_user(self.username, self.realname)
@@ -267,7 +271,10 @@ class IRCServer(object):
     def disconnect(self):
         self.send_quit()
         self.connected = False
-        self._socket.shutdown(socket.SHUT_RDWR)
+        try:
+            self._socket.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass
         self._socket.close()
     
     def read_lines(self):
