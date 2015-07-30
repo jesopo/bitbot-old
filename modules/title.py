@@ -3,12 +3,15 @@ import Utils
 
 REGEX_TITLE = re.compile("<title>(.*?)</title>", re.I|re.S)
 REGEX_URL = re.compile("https?://\S+", re.I)
+HELP_STRING = "Get the title from a supplied url"
 
 class Module(object):
     _name = "Title"
     def __init__(self, bot):
-        bot.events.on("received").on("command").on("t").hook(self.title)
-        bot.events.on("received").on("command").on("title").hook(self.title)
+        bot.events.on("received").on("command").on("t").hook(self.title,
+            help=HELP_STRING)
+        bot.events.on("received").on("command").on("title").hook(self.title,
+            help=HELP_STRING)
     
     def find_last_url(self, target):
         if target:

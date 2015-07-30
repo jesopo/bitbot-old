@@ -14,9 +14,11 @@ class Module(object):
         
         bot.events.on("new").on("channel").hook(self.new_channel)
         
-        bot.events.on("received").on("command").on("more").hook(self.more)
+        bot.events.on("received").on("command").on("more").hook(self.more,
+            helf="Show text truncated from the last command's response")
         bot.events.on("received").on("command").on("pipelast").hook(
-            self.pipe_last, min_args=1)
+            self.pipe_last, min_args=1, help="Pipe the output of the last command"
+            "to a supplied command")
     
     def new_channel(self, event):
         event["channel"].command_more = None
@@ -34,10 +36,19 @@ class Module(object):
         if not command_text == command_text_truncated:
             channel.command_more = [command_text.replace(
                 command_text_truncated, "", 1), module_name]
-            command_text = "%s (more)" % command_text_truncated
+            command_text = "%s (more)" % command_text_truncated.rstrip(" ")
         channel.command_last = command_text.replace("[%s] " % module_name,
             "", 1)
         channel.send_message(command_text)
+    
+    def on_private_message(self, event):
+        command = event["text_split"][0].lower()
+        args_split = event["text_split"][1:]
+        args = " ".join(args_split)
+        self.bot.events.on("received").on("privatecommand").on(command).call(
+            sender=event["sender"], server=event["server"], args=args,
+            args_split=args_split, command=command, line=event["line"],
+            line_split=event["line_split"])
     
     def on_message(self, event):
         command_prefix = event["channel"].config.get("command-prefix", event[

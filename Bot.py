@@ -1,4 +1,4 @@
-import select, sys, traceback
+import select, sys, time, traceback
 import ConfigManager, IRCServer, ModuleManager, TimedCallback
 
 class Bot(object):
@@ -6,21 +6,25 @@ class Bot(object):
         self.servers = {}
         self.other_fds = set([])
         self.write_waiting = set([])
+        self.soonest_timer = None
         self.timed_callbacks = []
+        self.new_timed_callbacks = []
         self.module_manager = ModuleManager.ModuleManager(self)
         self.events = self.module_manager.events
-        self.module_manager.load_modules()
         self.server_config_manager = ConfigManager.ConfigManager("servers")
         self.general_config_manager = ConfigManager.ConfigManager("settings")
         
         self.config = self.general_config_manager.get_config("bot")
         
-        configs = {}
+        self.configs = {}
         for config_name in self.server_config_manager.list_configs():
             config = self.server_config_manager.get_config(config_name)
-            configs[config_name] = config
-        for config_name in configs:
-            server = IRCServer.IRCServer(config_name, configs[config_name], self)
+            self.configs[config_name] = config
+        
+        self.module_manager.load_modules()
+        
+        for config_name in self.configs:
+            server = IRCServer.IRCServer(config_name, self.configs[config_name], self)
             self.events.on("new").on("server").call(server=server)
             self.servers[config_name] = server
         for server in self.servers.values():
@@ -35,39 +39,46 @@ class Bot(object):
     
     def get_soonest_timer(self):
         soonest = None
-        for timer in self.timed_callbacks[:]:
-            if timer.is_destroyed():
-                self.timed_callbacks.remove(timer)
-            elif soonest == None or timer.due_at() < soonest.due_at():
-                soonest = timer
-        return soonest
+        if len(self.new_timed_callbacks):
+            for timer in self.new_timed_callbacks[:]:
+                if not self.soonest_timer or timer.due_at() < self.soonest_timer.due_at():
+                    self.soonest_timer = timer
+                self.timed_callbacks.append(self.new_timed_callbacks.pop(
+                    self.new_timed_callbacks.index(timer)))
+        return self.soonest_timer
     def get_timer_delay(self):
         soonest = self.get_soonest_timer()
         if not soonest:
-            return self.config.get("max-loop-interval", 4)
-        return soonest.time_until()
+            return self.config.get("max-loop-interval", None)
+        delay = soonest.due_at()-time.time()
+        return delay if delay >= 0 else 0
     def add_timer(self, function, delay, *args, **kwargs):
         timer = TimedCallback.Timer(function, delay, *args, **kwargs)
-        self.timed_callbacks.append(timer)
+        self.new_timed_callbacks.append(timer)
     def call_timers(self):
-        for timer in self.timed_callbacks[:]:
-            if timer.is_destroyed():
-                self.timed_callbacks.remove(timer)
-            elif timer.due():
-                timer.call()
+        if self.soonest_timer and self.soonest_timer.due():
+            self.soonest_timer = None
+            for timer in self.timed_callbacks[:]:
+                if timer.due():
+                    timer.call()
+                if timer.is_destroyed():
+                    self.timed_callbacks.remove(timer)
+                elif not self.soonest_timer or timer.due_at() < self.soonest_timer.due_at():
+                    self.soonest_timer = timer
     
     def reconnect(self, server):
-        self.servers.remove(server)
+        del self.servers[server.name]
         server.disconnect()
         new_server = IRCServer.IRCServer(server.name, server.config, self)
-        self.events.on("new").on("server").call(server, new_server)
-        self.servers.add(new_server)
+        new_server.connect()
+        self.events.on("new").on("server").call(server=new_server)
+        self.servers[new_server.name] = new_server
     
     def listen(self):
         while len(self.servers):
             for server in list(self.servers.values()):
                 if not server.connected:
-                    self.servers.discard(server)
+                    del self.servers[server.name]
                     self.write_waiting.discard(server)
             readable, writable, errors = select.select(set(self.servers.values())|
                 self.other_fds, self.write_waiting, [], self.get_timer_delay())

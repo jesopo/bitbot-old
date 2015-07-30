@@ -7,6 +7,8 @@ class Module(object):
         bot.events.on("received").on("message").on("channel").hook(self.message)
     
     def message(self, event):
+        if not event["channel"].config.get("sed", True):
+            return
         if not hasattr(event["channel"], "log"):
             return
         sed_split = re.split(REGEX_SPLIT, event["text"], 3)

@@ -207,8 +207,8 @@ class IRCServer(object):
     
     def ssl_wrap(self, new_socket):
         context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-        context.options |= ssl.OP_NO_SSLv2
-        context.options |= ssl.OP_NO_SSLv3
+        #context.options |= ssl.OP_NO_SSLv2
+        #context.options |= ssl.OP_NO_SSLv3
         if self.ssl_verify:
             context.verify_mode = ssl.CERT_REQUIRED
             context.load_default_certs()

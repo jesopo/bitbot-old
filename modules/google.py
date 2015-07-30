@@ -2,15 +2,16 @@ import json
 import Utils
 
 GOOGLE_URL = "https://www.googleapis.com/customsearch/v1"
+HELP_STRING = "Search a supplied term on google"
 
 class Module(object):
     _name = "Google"
     def __init__(self, bot):
         self.bot = bot
         bot.events.on("received").on("command").on("google"
-            ).hook(self.google, min_args=1)
+            ).hook(self.google, min_args=1, help=HELP_STRING)
         bot.events.on("received").on("command").on("g"
-            ).hook(self.google, min_args=1)
+            ).hook(self.google, min_args=1, help=HELP_STRING)
     
     def google(self, event):
         api_key = self.bot.config.get("google-api-key")

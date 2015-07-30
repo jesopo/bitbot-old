@@ -9,29 +9,28 @@ class Module(object):
     def __init__(self, bot):
         self.bot = bot
         bot.events.on("received").on("command").on("in").hook(
-            self._in, min_args=2)
+            self._in, min_args=2, help="Set a timed reminder")
         self.load()
     
     def load(self):
-        for server_name in self.bot.servers:
-            server = self.bot.servers[server_name]
-            for channel_name in server.config.get("channels", {}):
-                for due_at, target, message in server.config["channels"][
-                        channel_name].get("in", []):
+        for server_name in self.bot.configs:
+            config = self.bot.configs[server_name]
+            for channel_name in config.get("channels", {}):
+                for due_at, target, message in (config["channels"][
+                        channel_name] or {}).get("in", []):
                     if not self.make_timer(server_name, channel_name, due_at,
                             target, message):
                         self.remove_config(server_name, channel_name, due_at,
                             target, message)
     
     def remove_config(self, server_name, channel_name, due_at, target, message):
-        server = self.bot.servers.get(server_name, None)
-        if server:
-            channel = server.get_channel(channel_name)
-            if channel:
-                alert = [due_at, target, message]
-                config = channel.config.get("in", [])
-                while alert in config:
-                    config.remove(alert)
+        config = self.bot.configs.get(server_name, {}).get("channels", {}).get(
+            channel_name, None)
+        if config:
+            alert = [due_at, target, message]
+            config = config.get("in", [])
+            if alert in config:
+                config.remove(alert)
     
     def make_timer(self, server_name, channel_name, due_at, target, message):
         delay = due_at-time.time()

@@ -8,9 +8,11 @@ class Module(object):
     def __init__(self, bot):
         self.bot = bot
         bot.events.on("received").on("command").on("wi").hook(self.wiki,
-            min_args=1)
+            min_args=1, help="Retreive information about a supplied topic" \
+                " from wikipedia")
         bot.events.on("received").on("command").on("mw").hook(self.wiki,
-            min_args=1)
+            min_args=1, help="Retreive information about a supplied topic" \
+                " from the configured media wiki (default is wikipedia)")
 
     def wiki(self, event):
         title = event["args"]

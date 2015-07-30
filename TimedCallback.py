@@ -26,7 +26,7 @@ class Timer(object):
     def due_at(self):
         return self.last_called+self.delay
     def due(self):
-        return time.time() >= self.last_called+self.delay
+        return time.time() >= self.due_at()
     
     def call(self):
         if not self.is_destroyed():

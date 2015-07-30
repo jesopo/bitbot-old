@@ -9,7 +9,7 @@ class Module(object):
     def __init__(self, bot):
         self.bot = bot
         bot.events.on("received").on("command").on("ud").hook(self.ud, min_args=
-            1, help="supply a term to be looked up on UrbanDictionary.")
+            1, help="Supply a term to be looked up on UrbanDictionary")
     
     def ud(self, event):
         number = 0

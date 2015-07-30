@@ -3,15 +3,16 @@ from twitter import OAuth, Twitter
 import Utils
 
 REGEX_TWITTER_URL = re.compile("https?://twitter.com/[^/]+/status/(\d+)")
+HELP_STRING = "Get a tweet from a twitter link, tweet ID or twitter @username"
 
 class Module(object):
     _name = "Twitter"
     def __init__(self, bot):
         self.bot = bot
         bot.events.on("received").on("command").on("twitter"
-            ).hook(self.twitter)
+            ).hook(self.twitter, help=HELP_STRING)
         bot.events.on("received").on("command").on("tw"
-            ).hook(self.twitter)
+            ).hook(self.twitter, help=HELP_STRING)
     
     def url_from_log(self, channel):
         for log in channel.log:

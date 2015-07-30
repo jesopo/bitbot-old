@@ -10,7 +10,7 @@ class Module(object):
         bot.events.on("received").on("command").on("translate"
             ).hook(self.translate)
         bot.events.on("received").on("command").on("tr"
-            ).hook(self.translate)
+            ).hook(self.translate, help="Translate a phrase into English")
         bot.events.on("received").on("command").on("translatebetween"
             ).hook(self.translate_between, min_args=1)
         bot.events.on("received").on("command").on("trb"
@@ -18,7 +18,7 @@ class Module(object):
         bot.events.on("received").on("command").on("translatelist"
             ).hook(self.translate_list)
         bot.events.on("received").on("command").on("trl"
-            ).hook(self.translate_list)
+            ).hook(self.translate_list, "Show list of available languages")
     
     def get_def(self, phrase, source_language, target_language):
         page = Utils.get_url("https://translate.google.co.uk/", post_params={

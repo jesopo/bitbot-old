@@ -7,7 +7,8 @@ class Module(object):
         bot.events.on("received").on("message").on("channel"
             ).hook(self.channel_message)
         bot.events.on("received").on("command").on("seen"
-            ).hook(self.seen, min_args=1)
+            ).hook(self.seen, min_args=1, help="Show when a " \
+            "supplied user last spoke")
         bot.events.on("received").on("command").hook(
             self.channel_message)
         # todo: make this delay configurable
