@@ -1,11 +1,17 @@
-import re
+import re, time
 
 REGEX_KARMA = re.compile("^([^,:\s]+)[:,]?\s*(\+\+|--)")
 
 class Module(object):
     def __init__(self, bot):
+        bot.events.on("new").on("user").hook(self.new_user)
+        bot.events.on("received").on("command").on("karma").hook(
+            self.karma)
         bot.events.on("received").on("message").on("channel").hook(
             self.on_message)
+    
+    def new_user(self, event):
+        event["user"].last_karma = None
     
     def make_user(self, server, nickname):
         with server.config as config:
@@ -32,7 +38,14 @@ class Module(object):
     def on_message(self, event):
         match = re.search(REGEX_KARMA, event["text"])
         if match:
-            self.change_karma(event["server"], match.group(1), match.group(2))
+            if match.group(1).lower() == event["sender"].nickname.lower():
+                event["channel"].send_message(
+                    "[Karma] you cannot change your own karma.")
+                return
+            if not event["sender"].last_karma or time.time()-event["sender"
+                    ].last_karma >= event["server"].config.get("karma-delay", 2):
+                event["sender"].last_karma = time.time()
+                self.change_karma(event["server"], match.group(1), match.group(2))
     
     def karma(self, event):
         target = ""
