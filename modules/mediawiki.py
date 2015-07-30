@@ -26,7 +26,7 @@ class Module(object):
         if page:
             page = json.loads(page)
         else:
-            return "Failed to load page"
+            return "Failed to load results"
         for i in page["query"]["pages"]:
             try:
                 text = page["query"]["pages"][i]["extract"]
