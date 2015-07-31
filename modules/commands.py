@@ -69,6 +69,13 @@ class Module(object):
     
     def handle(self, function, options, event):
         module_name = function.__self__._name
+        is_channel = False
+        if "channel" in event:
+            is_channel = True
+        if options.get("channel_only", False) and not is_channel:
+            return
+        if options.get("private_only", False) and is_channel:
+            return
         if len(event["args_split"]) < options.get("min_args", 0):
             self.send_response("Not enough arguments.", event["channel"],
                 function.__self__._name)
