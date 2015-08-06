@@ -44,7 +44,6 @@ class Module(object):
                 config = server_config.get("users", {}).get(target_name, None)
                 alert = [due_at, message]
             if config:
-                
                 alert = [due_at, nickname, message]
                 config = config.get("in", [])
                 if alert in config:

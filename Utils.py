@@ -1,4 +1,5 @@
 import glob, html.parser, os, re, traceback, urllib.parse, urllib.request
+from bs4 import BeautifulSoup
 
 REGEX_HOSTMASK = re.compile(":?([^!]*)!([^@]*)@(.*)")
 REGEX_CHARSET = re.compile("charset=(\S+)", re.I)
@@ -37,9 +38,13 @@ def get_url(url, **kwargs):
     except:
         traceback.print_exc()
         return None
-    encoding = response.info().get_content_charset() or "utf8"
-    
-    return response.read().decode(encoding)
+    response_content = response.read()
+    encoding = response.info().get_content_charset()
+    if not encoding:
+        soup = BeautifulSoup(response_content)
+        encoding = soup.find("meta").get("content").split("charset="
+            )[1].split()[0]
+    return response_content.decode(encoding)
 
 # parse html entities
 def html_entities(text):
