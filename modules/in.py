@@ -19,25 +19,43 @@ class Module(object):
                 for due_at, target, message in (config["channels"][
                         channel_name] or {}).get("in", []):
                     if not self.make_timer(server_name, channel_name, due_at,
-                            target, message):
+                            target, message, True):
                         self.remove_config(server_name, channel_name, due_at,
-                            target, message)
+                            target, message, True)
+            for nickname in config.get("users", {}):
+                for due_at, message in (config["users"][nickname] or {}
+                        ).get("in", []):
+                    if not self.make_timer(server_name, nickname, due_at,
+                            nickname, message, False):
+                        self.remove_config(server_name, nickname, due_at,
+                            nickname, message, False)
     
-    def remove_config(self, server_name, channel_name, due_at, target, message):
-        config = self.bot.configs.get(server_name, {}).get("channels", {}).get(
-            channel_name, None)
-        if config:
-            alert = [due_at, target, message]
-            config = config.get("in", [])
-            if alert in config:
-                config.remove(alert)
+    def remove_config(self, server_name, target_name, due_at, nickname, message,
+            is_channel):
+        server_config = self.bot.configs.get(server_name, {})
+        if server_config:
+            config = None
+            alert = None
+            if is_channel:
+                config = server_config.get("channels", {}).get(target_name,
+                    None)
+                alert = [due_at, nickname, message]
+            else:
+                config = server_config.get("users", {}).get(target_name, None)
+                alert = [due_at, message]
+            if config:
+                
+                alert = [due_at, nickname, message]
+                config = config.get("in", [])
+                if alert in config:
+                    config.remove(alert)
     
-    def make_timer(self, server_name, channel_name, due_at, target, message):
+    def make_timer(self, server_name, target_name, due_at, nickname, message, is_channel):
         delay = due_at-time.time()
         if delay > 0:
             self.bot.add_timer(self.timer_tick, delay, server_name=server_name,
-                channel_name=channel_name, message=message, target=target,
-                due_at=due_at)
+                target_name=target_name, message=message, nickname=nickname,
+                due_at=due_at, is_channel=is_channel)
             return True
         return False
     
@@ -48,25 +66,40 @@ class Module(object):
             duration, modifier = match
             full_duration += int(duration)*duration_modifiers[modifier]
         if full_duration:
-            target = nickname=event["sender"].nickname
+            target = event["sender"].nickname
             due_at = time.time()+full_duration
             message = " ".join(arg for arg in event["args_split"][1:])
-            with event["channel"].config as config:
+            target_config = None
+            if event["is_channel"]:
+                target_config = event["channel"].config
+            else:
+                if not event["sender"].name.lower() in event["server"].config["users"]:
+                    event["server"].config["users"][event["sender"].name.lower()] = {}
+                target_config = event["server"].config["users"][event["sender"].name.lower()]
+            with target_config as config:
                 if not "in" in config:
                     config["in"] = []
-                config["in"].append([due_at, target, message])
-                self.make_timer(event["server"].name, event["channel"].name, due_at,
-                    target, message)
+                if event["is_channel"]:
+                    config["in"].append([due_at, target, message])
+                else:
+                    config["in"].append([due_at, message])
+                self.make_timer(event["server"].name, event["target"].name, due_at,
+                    target, message, event["is_channel"])
             return "Will do"
         return "Duration must be above 0 seconds"
     
     def timer_tick(self, timer, **kwargs):
         server = self.bot.servers.get(kwargs["server_name"], None)
         if server:
-            channel = server.channels.get(kwargs["channel_name"], None)
-            if channel:
-                channel.send_message("[In] %s: %s" % (kwargs["target"],
-                    kwargs["message"]))
-        self.remove_config(kwargs["server_name"], kwargs["channel_name"],
-            kwargs["due_at"], kwargs["target"], kwargs["message"])
+            target = server.get_channel(kwargs["target_name"])
+            target = target or server.get_user_by_nickname(kwargs["target_name"])
+            if target:
+                if kwargs["is_channel"]:
+                    target.send_message("[In] %s: %s" % (kwargs["nickname"],
+                        kwargs["message"]))
+                else:
+                    target.send_message("[In] %s" % kwargs["message"])
+        self.remove_config(kwargs["server_name"], kwargs["target_name"],
+            kwargs["due_at"], kwargs["target_name"], kwargs["message"],
+            kwargs["is_channel"])
         timer.destroy()

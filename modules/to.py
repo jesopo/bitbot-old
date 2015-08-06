@@ -4,7 +4,7 @@ class Module(object):
     def __init__(self, bot):
         self.bot = bot
         bot.events.on("received").on("command").on("to").hook(
-            self.to, min_args=2)
+            self.to, min_args=2, channel_only=True)
         bot.events.on("received").on("message").on("channel"
             ).hook(self.channel_message)
         bot.events.on("received").on("command").hook(

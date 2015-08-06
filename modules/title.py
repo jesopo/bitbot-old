@@ -1,8 +1,10 @@
 import re, traceback, urllib.parse
+from bs4 import BeautifulSoup
 import Utils
 
 REGEX_TITLE = re.compile("<title>(.*?)</title>", re.I|re.S)
 REGEX_URL = re.compile("https?://\S+", re.I)
+REGEX_UNICODE_CODEPOINT = re.compile(r"\\u(\d{4})", re.I)
 HELP_STRING = "Get the title from a supplied url"
 
 class Module(object):
@@ -23,14 +25,13 @@ class Module(object):
     def get_title(self, url):
         page = Utils.get_url(url)
         if page:
-            title_match = re.search(REGEX_TITLE, page)
-            if not title_match:
-                return None
-            else:
-                title = Utils.html_entities(title_match.group(1))
-                title = title.strip()
-                title = title.split("\n")[0].rstrip()
-                return title
+            page = BeautifulSoup(page)
+            title = page.title.text
+            if title:
+                title = title.replace("\n", " ").replace("  ", " ").strip()
+                for match in re.finditer(REGEX_UNICODE_CODEPOINT, title):
+                    title = title.replace(match.group(0), chr(int(match.group(1), 16)))
+            return title
     
     def title(self, event):
         url = None

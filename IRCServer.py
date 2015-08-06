@@ -84,7 +84,7 @@ class IRCServer(object):
         self.bot.add_timer(self.check_connection, 30)
         
         # event triggered when a user object is destroyed
-        #self.bot.events.on("destroyed").on("user").hook(self.user_destroyed)
+        self.bot.events.on("destroyed").on("user").hook(self.user_destroyed)
         # event triggered when a channel object is destroyed
         self.bot.events.on("destroyed").on("channel").hook(self.channel_destroyed)
         
@@ -131,6 +131,8 @@ class IRCServer(object):
                 None), None)
     def add_user(self, nickname):
         if not self.has_user(nickname):
+            if not "users" in self.config:
+                self.config["users"] = {}
             id = None
             while not id or id in self.users:
                 id = uuid.uuid1().hex
@@ -485,7 +487,7 @@ class IRCServer(object):
             self.bot.events.on("received").on("message").on("channel").call(
                 line=line, line_split=line_split, server=self, channel=channel,
                 text=text, text_split=text_split, sender=sender, action=action)
-        elif self.own_nickname(nickname):
+        elif self.own_nickname(recipient_name):
             self.bot.events.on("received").on("message").on("private").call(
                 line=line, line_split=line_split, server=self, text=text,
                 text_split=text_split, sender=sender, action=action)

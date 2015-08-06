@@ -11,12 +11,12 @@ class IRCUser(object):
         self._destroyed = False
     
     def add_channel(self, channel):
-        if not channel.name_lower in self.channels:
-            self.channels[channel.name_lower] = channel
+        if not channel.name in self.channels:
+            self.channels[channel.name] = channel
         channel.add_user(self)
     def _remove_channel(self, channel):
-        if channel.name_lower in self.channels:
-            del self.channels[channel.name_lower]
+        if channel.name in self.channels:
+            del self.channels[channel.name]
         channel.remove_user(self)
     def remove_channel(self, channel):
         self._remove_channel(channel)
@@ -28,6 +28,7 @@ class IRCUser(object):
             self.server.change_nickname(self.nickname, nickname)
         self.nickname = nickname
         self.nickname_lower = nickname.lower()
+        self.name = nickname.lower()
     
     def send_who(self):
         self.server.send_who(self.nickname)

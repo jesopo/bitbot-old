@@ -7,7 +7,7 @@ class Module(object):
     
     def on_command(self, event):
         if "permissions" in event["options"]:
-            user_permissions = event["event"]["server"].config.get("registered", {}
+            user_permissions = event["event"]["server"].config.get("users", {}
                 ).get(event["event"]["sender"].nickname_lower, {}).get(
                 "permissions", [])
             for permission in event["options"]["permissions"]:
