@@ -53,8 +53,8 @@ class Module(object):
                     tweets = None
                 if tweets:
                     screen_name = "@%s" % tweets[0]["user"]["screen_name"]
-                    if tweets[0]["retweeted"]:
-                        original_screen_name = "@%s" %tweets[0]["retweeted_status"
+                    if "retweeted_status" in tweets[0]:
+                        original_screen_name = "@%s" % tweets[0]["retweeted_status"
                             ]["user"]["screen_name"]
                         original_text = tweets[0]["retweeted_status"]["text"]
                         retweet_timestamp = self.make_timestamp(tweets[0]["created_at"])

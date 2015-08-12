@@ -15,7 +15,7 @@ class Module(object):
             return "Provided dice notation is invalid."
         reason = " ".join(event["args_split"][1:])
         if reason:
-            reason = "for %s" % reason
+            reason = " for %s" % reason
         dice_amount = 1 if not match.group(1) else int(match.group(1))
         if dice_amount > 10:
             return "The maximum number of dice is 10."
@@ -45,5 +45,5 @@ class Module(object):
             result += modifiers
             result *= crit_modifiers
             final_results.append(str(result))
-        return "%s rolls %s %s and gets %s" % (event["sender"].nickname, event[
+        return "%s rolls %s%s and gets %s" % (event["sender"].nickname, event[
             "args_split"][0], reason, ", ".join(final_results))

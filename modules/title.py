@@ -2,7 +2,6 @@ import re, traceback, urllib.parse
 from bs4 import BeautifulSoup
 import Utils
 
-REGEX_TITLE = re.compile("<title>(.*?)</title>", re.I|re.S)
 REGEX_URL = re.compile("https?://\S+", re.I)
 REGEX_UNICODE_CODEPOINT = re.compile(r"\\u(\d{4})", re.I)
 HELP_STRING = "Get the title from a supplied url"
@@ -17,18 +16,17 @@ class Module(object):
     
     def find_last_url(self, target):
         if target:
-            for log in target.log:
-                match = re.search(REGEX_URL, log.text)
-                if match:
-                    return match.group(0)
+            match = target.log.find_regex(REGEX_URL)
+            if match:
+                return match.group(0)
     
     def get_title(self, url):
         page = Utils.get_url(url)
         if page:
             page = BeautifulSoup(page)
-            title = page.title.text
+            title = page.title
             if title:
-                title = title.replace("\n", " ").replace("  ", " ").strip()
+                title = title.text.replace("\n", " ").replace("  ", " ").strip()
                 for match in re.finditer(REGEX_UNICODE_CODEPOINT, title):
                     title = title.replace(match.group(0), chr(int(match.group(1), 16)))
             return title
