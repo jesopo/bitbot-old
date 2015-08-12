@@ -1,4 +1,4 @@
-
+import re
 
 class Log(object):
     def __init__(self, nickname, text, is_action, from_self):
@@ -52,4 +52,4 @@ class Module(object):
     
     def channel(self, event):
         event["channel"].log.add(event["sender"].nickname, event["text"],
-            event["action"], "sent" in event)
+            event["action"], "send" in event)
