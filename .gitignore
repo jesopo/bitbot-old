@@ -52,3 +52,11 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# this project's stuff
+servers/*.conf
+servers/*.temp
+servers/*.journal
+settings/*.conf
+settings/*.temp
+settings/*.journal

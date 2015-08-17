@@ -48,7 +48,7 @@ class Module(object):
         bot.events.on("new").on("channel").hook(self.new_channel)
     
     def new_channel(self, event):
-        event["channel"].log = LogList(event["server"])
+        event["channel"].log = LogList(event["channel"].server)
     
     def channel(self, event):
         event["channel"].log.add(event["sender"].nickname, event["text"],

@@ -66,20 +66,35 @@ class Bot(object):
                 elif not self.soonest_timer or timer.due_at() < self.soonest_timer.due_at():
                     self.soonest_timer = timer
     
-    def reconnect(self, server):
-        del self.servers[server.name]
+    def connect(self, server):
+        try:
+            server.connect()
+            print("Connected to %s" % server.str_host)
+        except:
+            print("Failed to connect to %s" % server.str_host)
+            return False
+        return True
+    def disconnect(self, server):
+        self.servers.pop(server.name)
         server.disconnect()
+        self.write_waiting.discard(server)
+        print("Disconnected from %s" % server.str_host)
+    def reconnect(self, server):
+        self.disconnect(server)
+        self.add_timer(self.reconnect_timer, self.config.get("reconnect-delay",
+            10), server)
+    def reconnect_timer(self, timer, server):
         new_server = IRCServer.IRCServer(server.name, server.config, self)
-        new_server.connect()
-        self.events.on("new").on("server").call(server=new_server)
+        try:
+            new_server.connect()
+        except:
+            print("Failed to reconnect to %s" % new_server.str_host)
+            return
         self.servers[new_server.name] = new_server
+        timer.destroy()
     
     def listen(self):
         while len(self.servers):
-            for server in list(self.servers.values()):
-                if not server.connected:
-                    del self.servers[server.name]
-                    self.write_waiting.discard(server)
             readable, writable, errors = select.select(set(self.servers.values())|
                 self.other_fds, self.write_waiting, [], self.get_timer_delay())
             self.call_timers()

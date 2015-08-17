@@ -9,6 +9,7 @@ class IRCUser(object):
         self.server.users[self.id] = self
         self.channels = {}
         self._destroyed = False
+        self.server.bot.events.on("new").on("user").call(user=self)
     
     def add_channel(self, channel):
         if not channel.name in self.channels:

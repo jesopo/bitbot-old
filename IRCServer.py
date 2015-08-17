@@ -91,6 +91,9 @@ class IRCServer(object):
         # boolean denoting whether the server object has realised that it's been
         # disconnected or not yet connected or happily dandily connected
         self.connected = False
+        
+        # kick off the event for a new server object
+        self.bot.events.on("new").on("server").call(server=self)
     
     def fileno(self):
         return self._socket.fileno()
@@ -140,8 +143,6 @@ class IRCServer(object):
             self.users[id] = user
             self.nickname_to_id[user.nickname_lower] = id
             self.new_users.add(id)
-            self.bot.events.on("new").on("user").call(
-                user=user, server=self)
     def remove_user(self, nickname):
         # todo: remove this functionality being handled by the IRCUser object,
         # I mean, removing it's self from the server's list and stuff. it's weird.
@@ -200,8 +201,6 @@ class IRCServer(object):
             self.channels[channel_name.lower()] = IRCChannel.IRCChannel(
                 channel_name, self, self.config["channels"][channel_name.lower(
                 )])
-            self.bot.events.on("new").on("channel").call(
-                channel=self.get_channel(channel_name), server=self)
     def remove_channel(self, channel):
         for user in channel.users:
             channel.users[user].remove_channel(channel)

@@ -10,6 +10,8 @@ class IRCChannel(object):
         self.user_modes = {}
         self.log = []
         self._destroyed = False
+        self.server.bot.events.on("new").on("channel").call(
+            channel=self)
     
     def add_user(self, user):
         if not user.id in self.users:

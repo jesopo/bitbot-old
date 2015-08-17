@@ -6,7 +6,7 @@ class Module(object):
     def __init__(self, bot):
         bot.events.on("new").on("user").hook(self.new_user)
         bot.events.on("received").on("command").on("karma").hook(
-            self.karma)
+            self.karma, help="View karma for a given user")
         bot.events.on("received").on("message").on("channel").hook(
             self.on_message)
     

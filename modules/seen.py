@@ -15,19 +15,21 @@ class Module(object):
         bot.add_timer(self.on_timer, 20)
     
     def channel_message(self, event):
-        if not event["channel"] in self.changed:
-            self.changed[event["channel"]] = {}
-        self.changed[event["channel"]][event["sender"].nickname.lower()
+        if not event["server"] in self.changed:
+            self.changed[event["server"]] = {}
+        self.changed[event["server"]][event["sender"].nickname.lower()
             ] = int(time.time())
     
     def on_timer(self, timer):
-        for channel in self.changed:
-            with channel.config as config:
-                if not "seen" in config:
-                    config["seen"] = {}
-                for nickname in self.changed[channel]:
-                    config["seen"][nickname] = self.changed[
-                        channel][nickname]
+        for server in self.changed:
+            with server.config as config:
+                if not "users" in config:
+                    config["users"] = {}
+                for nickname in self.changed[server]:
+                    if not nickname in config["users"]:
+                        config["users"][nickname] = {}
+                    config["users"][nickname]["seen"] = self.changed[
+                        server][nickname]
     
     def seen(self, event):
         nickname = event["args_split"][0]
